@@ -1,0 +1,2634 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>QuizMaster — Test Your Knowledge</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    /* ====================================================
+       DESIGN TOKENS
+    ==================================================== */
+    :root {
+      --bg:        #f7f8fc;
+      --surface:   #ffffff;
+      --border:    #e4e7f0;
+      --text:      #1a1d2e;
+      --muted:     #6b7280;
+      --accent:    #4f46e5;
+      --accent-lt: #eef2ff;
+      --green:     #16a34a;
+      --green-lt:  #dcfce7;
+      --red:       #dc2626;
+      --red-lt:    #fee2e2;
+      --amber:     #d97706;
+      --amber-lt:  #fef3c7;
+      --radius:    10px;
+      --shadow:    0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.06);
+      box-sizing: border-box;
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    [data-theme="dark"] {
+      --bg:        #0f1117;
+      --surface:   #1a1d2e;
+      --border:    #2d3148;
+      --text:      #f1f2f7;
+      --muted:     #9ca3af;
+      --accent-lt: #1e1b4b;
+      --green-lt:  #14532d;
+      --red-lt:    #7f1d1d;
+      --amber-lt:  #78350f;
+    }
+    *, *::before, *::after { box-sizing: inherit; margin: 0; padding: 0; }
+    html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+      transition: background .2s, color .2s;
+    }
+
+    /* ====================================================
+       LAYOUT
+    ==================================================== */
+    .app { display: flex; min-height: 100vh; }
+    .sidebar {
+      width: 240px; flex-shrink: 0;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      position: sticky; top: 0; height: 100vh;
+      overflow-y: auto;
+    }
+    .main { flex: 1; padding: 32px; overflow-x: hidden; }
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .main { padding: 16px; }
+    }
+
+    /* ====================================================
+       SIDEBAR
+    ==================================================== */
+    .logo {
+      padding: 24px 20px 20px;
+      font-weight: 700; font-size: 1.1rem;
+      color: var(--accent);
+      display: flex; align-items: center; gap: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    .logo-icon { font-size: 1.5rem; }
+    .nav { padding: 12px 0; flex: 1; }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 20px; cursor: pointer;
+      color: var(--muted); font-size: .9rem; font-weight: 500;
+      border-radius: 0; transition: all .15s;
+      border: none; background: none; width: 100%; text-align: left;
+    }
+    .nav-item:hover { background: var(--accent-lt); color: var(--accent); }
+    .nav-item.active { background: var(--accent-lt); color: var(--accent); border-left: 3px solid var(--accent); }
+    .nav-item .icon { font-size: 1.1rem; width: 22px; text-align: center; }
+    .sidebar-footer {
+      padding: 16px 20px;
+      border-top: 1px solid var(--border);
+      display: flex; align-items: center; gap: 10px;
+    }
+    .avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: var(--accent); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: .85rem; flex-shrink: 0;
+    }
+    .user-info { flex: 1; min-width: 0; }
+    .user-name { font-weight: 600; font-size: .85rem; truncate: true; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .user-role { font-size: .75rem; color: var(--muted); }
+
+    /* ====================================================
+       TOPBAR (mobile + theme toggle)
+    ==================================================== */
+    .topbar {
+      display: none;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 16px;
+      align-items: center; gap: 12px;
+      position: sticky; top: 0; z-index: 100;
+    }
+    @media (max-width: 768px) { .topbar { display: flex; } }
+    .topbar-logo { font-weight: 700; color: var(--accent); flex: 1; }
+    .btn-icon {
+      width: 36px; height: 36px; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--surface);
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      font-size: 1rem; color: var(--text); transition: all .15s;
+    }
+    .btn-icon:hover { background: var(--accent-lt); border-color: var(--accent); color: var(--accent); }
+
+    /* ====================================================
+       COMMON COMPONENTS
+    ==================================================== */
+    .page { display: none; }
+    .page.active { display: block; }
+
+    h1 { font-size: 1.6rem; font-weight: 700; margin-bottom: 8px; }
+    h2 { font-size: 1.25rem; font-weight: 700; margin-bottom: 16px; }
+    h3 { font-size: 1rem; font-weight: 600; margin-bottom: 8px; }
+    p { color: var(--muted); margin-bottom: 12px; }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: var(--shadow);
+    }
+    .card + .card { margin-top: 16px; }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 10px 20px; border-radius: 8px;
+      font-size: .9rem; font-weight: 600; cursor: pointer;
+      border: none; transition: all .15s;
+      font-family: inherit;
+    }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { opacity: .9; transform: translateY(-1px); }
+    .btn-outline { background: transparent; border: 1.5px solid var(--border); color: var(--text); }
+    .btn-outline:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-lt); }
+    .btn-danger { background: var(--red); color: #fff; }
+    .btn-danger:hover { opacity: .9; }
+    .btn-sm { padding: 6px 14px; font-size: .8rem; }
+    .btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+    .badge {
+      display: inline-flex; align-items: center;
+      padding: 3px 10px; border-radius: 999px;
+      font-size: .75rem; font-weight: 600;
+    }
+    .badge-green { background: var(--green-lt); color: var(--green); }
+    .badge-red { background: var(--red-lt); color: var(--red); }
+    .badge-amber { background: var(--amber-lt); color: var(--amber); }
+    .badge-blue { background: var(--accent-lt); color: var(--accent); }
+
+    .input-group { margin-bottom: 16px; }
+    .input-group label { display: block; font-size: .85rem; font-weight: 600; margin-bottom: 6px; }
+    .input-group input, .input-group select, .input-group textarea {
+      width: 100%; padding: 10px 14px;
+      border: 1.5px solid var(--border); border-radius: 8px;
+      background: var(--bg); color: var(--text);
+      font-size: .9rem; font-family: inherit;
+      transition: border-color .15s;
+      outline: none;
+    }
+    .input-group input:focus, .input-group select:focus, .input-group textarea:focus {
+      border-color: var(--accent);
+    }
+    .input-group textarea { resize: vertical; min-height: 80px; }
+
+    .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+    @media (max-width: 900px) { .grid-3, .grid-4 { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 600px) { .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; } }
+
+    .flex { display: flex; }
+    .flex-between { display: flex; justify-content: space-between; align-items: center; }
+    .flex-wrap { display: flex; flex-wrap: wrap; gap: 10px; }
+    .gap-8 { gap: 8px; }
+    .mt-16 { margin-top: 16px; }
+    .mt-24 { margin-top: 24px; }
+    .mb-16 { margin-bottom: 16px; }
+    .text-center { text-align: center; }
+    .text-sm { font-size: .85rem; }
+    .text-muted { color: var(--muted); }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+
+    /* ====================================================
+       STAT CARDS
+    ==================================================== */
+    .stat-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px;
+      box-shadow: var(--shadow);
+    }
+    .stat-value { font-size: 2rem; font-weight: 700; color: var(--accent); font-family: 'JetBrains Mono', monospace; }
+    .stat-label { font-size: .8rem; color: var(--muted); font-weight: 500; margin-top: 4px; }
+
+    /* ====================================================
+       QUIZ CARDS
+    ==================================================== */
+    .quiz-card {
+      background: var(--surface); border: 1.5px solid var(--border);
+      border-radius: var(--radius); padding: 20px;
+      box-shadow: var(--shadow); cursor: pointer;
+      transition: all .2s; position: relative;
+    }
+    .quiz-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(79,70,229,.12); }
+    .quiz-title { font-weight: 700; font-size: 1rem; margin-bottom: 6px; }
+    .quiz-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .quiz-meta-item { font-size: .78rem; color: var(--muted); display: flex; align-items: center; gap: 4px; }
+
+    /* ====================================================
+       QUIZ TAKING
+    ==================================================== */
+    .quiz-header {
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      padding: 16px 24px; display: flex; align-items: center;
+      justify-content: space-between; position: sticky; top: 0; z-index: 50;
+    }
+    .timer {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.4rem; font-weight: 700;
+      color: var(--text); padding: 6px 16px;
+      background: var(--bg); border-radius: 8px;
+      border: 1.5px solid var(--border);
+    }
+    .timer.warning { color: var(--amber); border-color: var(--amber); }
+    .timer.danger { color: var(--red); border-color: var(--red); animation: pulse 1s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .6; } }
+
+    .question-nav {
+      display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 20px;
+    }
+    .q-nav-btn {
+      width: 36px; height: 36px; border-radius: 6px;
+      border: 1.5px solid var(--border); background: var(--bg);
+      font-size: .8rem; font-weight: 600; cursor: pointer;
+      transition: all .15s; color: var(--text);
+    }
+    .q-nav-btn.answered { background: var(--green); border-color: var(--green); color: #fff; }
+    .q-nav-btn.current { border-color: var(--accent); color: var(--accent); }
+    .q-nav-btn.bookmarked::after { content: '⭐'; position: absolute; font-size: .5rem; top: -2px; right: -2px; }
+    .q-nav-btn { position: relative; }
+
+    .option-btn {
+      width: 100%; text-align: left; padding: 14px 18px;
+      border: 1.5px solid var(--border); border-radius: 8px;
+      background: var(--bg); color: var(--text);
+      font-size: .9rem; cursor: pointer; transition: all .15s;
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 10px; font-family: inherit;
+    }
+    .option-btn:hover { border-color: var(--accent); background: var(--accent-lt); }
+    .option-btn.selected { border-color: var(--accent); background: var(--accent-lt); color: var(--accent); }
+    .option-label {
+      width: 28px; height: 28px; border-radius: 50%;
+      border: 1.5px solid currentColor;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .8rem; font-weight: 700; flex-shrink: 0;
+    }
+
+    /* ====================================================
+       RESULT PAGE
+    ==================================================== */
+    .result-header {
+      text-align: center; padding: 32px;
+    }
+    .result-score-ring {
+      width: 140px; height: 140px; margin: 0 auto 20px;
+      border-radius: 50%; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      font-family: 'JetBrains Mono', monospace;
+      border: 6px solid;
+    }
+    .result-score-ring.passed { border-color: var(--green); color: var(--green); }
+    .result-score-ring.failed { border-color: var(--red); color: var(--red); }
+    .result-score-value { font-size: 2rem; font-weight: 700; }
+    .result-score-label { font-size: .75rem; color: var(--muted); }
+
+    .review-item {
+      border: 1.5px solid var(--border); border-radius: var(--radius);
+      padding: 20px; margin-bottom: 12px;
+    }
+    .review-item.correct { border-color: var(--green); }
+    .review-item.wrong { border-color: var(--red); }
+    .review-item.unanswered { border-color: var(--amber); }
+
+    /* ====================================================
+       TABLE
+    ==================================================== */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+    th {
+      text-align: left; padding: 10px 14px;
+      background: var(--bg); border-bottom: 2px solid var(--border);
+      font-weight: 600; font-size: .8rem; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .04em;
+    }
+    td { padding: 12px 14px; border-bottom: 1px solid var(--border); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--accent-lt); }
+
+    /* ====================================================
+       MODAL
+    ==================================================== */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.5);
+      display: none; align-items: center; justify-content: center;
+      z-index: 1000; padding: 20px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--surface); border-radius: var(--radius);
+      padding: 28px; width: 100%; max-width: 560px;
+      max-height: 90vh; overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,.2);
+    }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .modal-close {
+      background: none; border: none; cursor: pointer;
+      font-size: 1.2rem; color: var(--muted); padding: 4px;
+    }
+
+    /* ====================================================
+       AUTH PAGES
+    ==================================================== */
+    .auth-container {
+      min-height: 100vh; display: flex; align-items: center;
+      justify-content: center; padding: 20px;
+      background: var(--bg);
+    }
+    .auth-box {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; padding: 40px; width: 100%; max-width: 420px;
+      box-shadow: var(--shadow);
+    }
+    .auth-logo {
+      text-align: center; margin-bottom: 32px;
+    }
+    .auth-logo-icon { font-size: 2.5rem; display: block; margin-bottom: 8px; }
+    .auth-logo-text { font-size: 1.4rem; font-weight: 700; color: var(--accent); }
+    .auth-logo-sub { font-size: .85rem; color: var(--muted); margin-top: 4px; }
+
+    /* ====================================================
+       PROGRESS BAR
+    ==================================================== */
+    .progress-bar { background: var(--border); border-radius: 999px; height: 6px; }
+    .progress-fill { background: var(--accent); height: 100%; border-radius: 999px; transition: width .3s; }
+
+    /* ====================================================
+       FILTER BAR
+    ==================================================== */
+    .filter-bar {
+      display: flex; flex-wrap: wrap; gap: 10px;
+      margin-bottom: 20px; align-items: center;
+    }
+    .filter-bar input, .filter-bar select {
+      padding: 8px 14px; border: 1.5px solid var(--border); border-radius: 8px;
+      background: var(--surface); color: var(--text); font-size: .88rem;
+      font-family: inherit; outline: none;
+    }
+    .filter-bar input:focus, .filter-bar select:focus { border-color: var(--accent); }
+    .filter-bar input { min-width: 200px; }
+
+    /* ====================================================
+       LEADERBOARD
+    ==================================================== */
+    .lb-row { display: flex; align-items: center; gap: 16px; padding: 14px; border-radius: 8px; margin-bottom: 8px; background: var(--bg); }
+    .lb-row.current-user { background: var(--accent-lt); border: 1.5px solid var(--accent); }
+    .lb-rank { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 1.1rem; width: 36px; text-align: center; }
+    .lb-rank.gold { color: #f59e0b; }
+    .lb-rank.silver { color: #94a3b8; }
+    .lb-rank.bronze { color: #b45309; }
+    .lb-name { flex: 1; font-weight: 600; }
+    .lb-score { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--accent); }
+
+    /* ====================================================
+       CHARTS (CSS-based)
+    ==================================================== */
+    .chart-bar-wrap { display: flex; align-items: flex-end; gap: 8px; height: 120px; padding-bottom: 24px; position: relative; }
+    .chart-bar-col { display: flex; flex-direction: column; align-items: center; flex: 1; height: 100%; justify-content: flex-end; }
+    .chart-bar { width: 100%; background: var(--accent); border-radius: 4px 4px 0 0; transition: height .4s; min-height: 4px; }
+    .chart-bar-label { font-size: .65rem; color: var(--muted); margin-top: 4px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60px; }
+
+    /* ====================================================
+       TOAST
+    ==================================================== */
+    #toast {
+      position: fixed; bottom: 24px; right: 24px;
+      padding: 14px 20px; border-radius: 10px;
+      background: var(--text); color: var(--bg);
+      font-size: .88rem; font-weight: 500;
+      box-shadow: 0 8px 24px rgba(0,0,0,.2);
+      z-index: 9999; transform: translateY(80px);
+      transition: transform .3s; max-width: 320px;
+    }
+    #toast.show { transform: translateY(0); }
+    #toast.success { background: var(--green); color: #fff; }
+    #toast.error { background: var(--red); color: #fff; }
+
+
+    /* ====================================================
+       AI QUIZ GENERATOR
+    ==================================================== */
+    .btn-ai { background: linear-gradient(135deg, #7c3aed, #4f46e5); color: #fff; }
+    .btn-ai:hover { opacity: .92; transform: translateY(-1px); }
+    .gen-tabs { display: flex; gap: 8px; margin-bottom: 18px; background: var(--bg); padding: 4px; border-radius: 10px; }
+    .gen-tab {
+      flex: 1; padding: 10px 14px; border: none; background: transparent; cursor: pointer;
+      border-radius: 8px; font: inherit; font-weight: 600; font-size: .88rem; color: var(--muted);
+    }
+    .gen-tab.active { background: var(--surface); color: var(--accent); box-shadow: var(--shadow); }
+    .dropzone {
+      border: 2px dashed var(--border); border-radius: var(--radius); padding: 28px 16px;
+      text-align: center; cursor: pointer; margin-bottom: 16px; transition: .15s;
+    }
+    .dropzone:hover, .dropzone.drag { border-color: var(--accent); background: var(--accent-lt); }
+    .dropzone .dz-icon { font-size: 2rem; }
+    .dropzone .dz-name { font-weight: 700; margin-top: 6px; word-break: break-all; }
+    .dropzone .dz-hint { font-size: .78rem; color: var(--muted); margin-top: 4px; }
+    .gen-loading { text-align: center; padding: 40px 10px; }
+    .gen-loading p { color: var(--muted); font-size: .9rem; }
+    .gen-warning { background: var(--amber-lt); color: var(--amber); padding: 10px 14px; border-radius: 8px; font-size: .85rem; margin-bottom: 14px; }
+    .gen-q { border: 1.5px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 12px; }
+    .gen-q textarea, .gen-q input[type=text] {
+      width: 100%; padding: 8px 10px; border: 1.5px solid var(--border); border-radius: 8px;
+      background: var(--surface); color: var(--text); font: inherit; font-size: .88rem;
+    }
+    .gen-q textarea { min-height: 56px; resize: vertical; margin: 8px 0; }
+    .gen-opt { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+    .gen-opt b { width: 16px; text-align: center; }
+    .gen-opt input[type=radio] { accent-color: var(--green); width: 16px; height: 16px; flex: none; }
+    .gen-opt.correct input[type=text] { border-color: var(--green); background: var(--green-lt); }
+    .gen-hint { font-size: .75rem; color: var(--muted); margin: 2px 0 8px; }
+
+    /* loading */
+    .spinner {
+      width: 32px; height: 32px; border: 3px solid var(--border);
+      border-top-color: var(--accent); border-radius: 50%;
+      animation: spin .8s linear infinite; margin: 40px auto;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading { display: flex; justify-content: center; padding: 40px; }
+  
+.manual-q-section { border-top:1px solid var(--border); padding-top:16px; }
+.manual-q-card { border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:12px; background:var(--card, #fff); }
+.manual-q-card .manual-q-head { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:12px; }
+.manual-q-card .manual-q-options { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.manual-q-card .manual-q-option { display:flex; align-items:center; gap:8px; }
+.manual-q-card .manual-q-option input[type="radio"] { width:auto; flex:0 0 auto; }
+.manual-q-card .manual-q-option input[type="text"] { flex:1; }
+@media (max-width:700px) { .manual-q-card .manual-q-options { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+
+<!-- ====================================================
+     AUTH SCREEN
+==================================================== -->
+<div id="authScreen">
+  <div class="auth-container">
+    <div class="auth-box">
+      <div class="auth-logo">
+        <span class="auth-logo-icon">🧠</span>
+        <div class="auth-logo-text">QuizMaster</div>
+        <div class="auth-logo-sub">Test your knowledge. Track your growth.</div>
+      </div>
+
+      <!-- Login Form -->
+      <div id="loginForm">
+        <h2>Sign In</h2>
+        <div class="input-group">
+          <label>Email</label>
+          <input type="email" id="loginEmail" placeholder="you@example.com" />
+        </div>
+        <div class="input-group">
+          <label>Password</label>
+          <input type="password" id="loginPassword" placeholder="Your password" />
+        </div>
+        <button class="btn btn-primary" style="width:100%" onclick="login()">Sign In</button>
+        <p style="text-align:center; margin-top:16px; font-size:.85rem">
+          No account? <a href="#" onclick="showRegister()" style="color:var(--accent); font-weight:600">Register</a>
+        </p>
+        <p style="text-align:center; font-size:.75rem; margin-top:8px; color:var(--muted)">
+          Demo: admin@quizapp.com / Admin@123
+        </p>
+      </div>
+
+      <!-- Register Form -->
+      <div id="registerForm" style="display:none">
+        <h2>Create Account</h2>
+        <div class="input-group">
+          <label>Full Name</label>
+          <input type="text" id="regName" placeholder="Your name" />
+        </div>
+        <div class="input-group">
+          <label>Email</label>
+          <input type="email" id="regEmail" placeholder="you@example.com" />
+        </div>
+        <div class="input-group">
+          <label>Password</label>
+          <input type="password" id="regPassword" placeholder="Min 6 characters" />
+        </div>
+        <button class="btn btn-primary" style="width:100%" onclick="register()">Create Account</button>
+        <p style="text-align:center; margin-top:16px; font-size:.85rem">
+          Have account? <a href="#" onclick="showLogin()" style="color:var(--accent); font-weight:600">Sign In</a>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====================================================
+     MAIN APP (shown after login)
+==================================================== -->
+<div id="mainApp" style="display:none">
+  <!-- Mobile Topbar -->
+  <div class="topbar">
+    <span class="topbar-logo">🧠 QuizMaster</span>
+    <button class="btn-icon" onclick="toggleTheme()">🌙</button>
+    <button class="btn-icon" onclick="logout()">👋</button>
+  </div>
+
+  <div class="app">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="logo"><span class="logo-icon">🧠</span> QuizMaster</div>
+      <nav class="nav" id="sideNav"></nav>
+      <div style="padding: 12px 20px; border-top: 1px solid var(--border);">
+        <button class="btn btn-outline btn-sm" style="width:100%; margin-bottom:8px" onclick="toggleTheme()">🌙 Toggle Theme</button>
+        <button class="btn btn-outline btn-sm" style="width:100%; color:var(--red); border-color:var(--red)" onclick="logout()">Sign Out</button>
+      </div>
+      <div class="sidebar-footer">
+        <div class="avatar" id="sidebarAvatar">?</div>
+        <div class="user-info">
+          <div class="user-name" id="sidebarName">Loading...</div>
+          <div class="user-role" id="sidebarRole"></div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Pages -->
+    <main class="main">
+
+      <!-- DASHBOARD (User) -->
+      <div id="pageDashboard" class="page active">
+        <div class="flex-between mb-16">
+          <div>
+            <h1 id="dashGreeting">Welcome!</h1>
+            <p>Here's your learning progress</p>
+          </div>
+        </div>
+        <div class="grid-4" id="dashStats"></div>
+        <div class="grid-2 mt-24">
+          <div class="card">
+            <h3>Recent Attempts</h3>
+            <div id="dashRecent"></div>
+          </div>
+          <div class="card">
+            <h3>Performance Chart</h3>
+            <div id="dashChart"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BROWSE QUIZZES -->
+      <div id="pageQuizzes" class="page">
+        <div class="flex-between mb-16">
+          <div><h1>Browse Quizzes</h1><p>Choose a quiz to test yourself</p></div>
+        </div>
+        <div class="filter-bar">
+          <input type="text" id="filterSearch" placeholder="🔍 Search quizzes..." oninput="filterQuizzes()" />
+          <select id="filterCategory" onchange="filterQuizzes()">
+            <option value="">All Categories</option>
+          </select>
+          <select id="filterDifficulty" onchange="filterQuizzes()">
+            <option value="">All Difficulties</option>
+            <option value="Easy">Easy</option>
+            <option value="Medium">Medium</option>
+            <option value="Hard">Hard</option>
+          </select>
+        </div>
+        <div class="grid-3" id="quizGrid"></div>
+        <div id="quizPagination" class="flex-between mt-16" style="display:none !important"></div>
+      </div>
+
+      <!-- QUIZ DETAIL -->
+      <div id="pageQuizDetail" class="page">
+        <button class="btn btn-outline btn-sm mb-16" onclick="showPage('pageQuizzes')">← Back to Quizzes</button>
+        <div id="quizDetailContent"></div>
+      </div>
+
+      <!-- TAKE QUIZ -->
+      <div id="pageQuizTake" class="page"></div>
+
+      <!-- RESULT -->
+      <div id="pageResult" class="page">
+        <div id="resultContent"></div>
+      </div>
+
+      <!-- HISTORY -->
+      <div id="pageHistory" class="page">
+        <h1>Attempt History</h1>
+        <p>All your past quiz attempts</p>
+        <div class="card mt-16">
+          <div class="table-wrap" id="historyTable"></div>
+        </div>
+      </div>
+
+      <!-- LEADERBOARD -->
+      <div id="pageLeaderboard" class="page">
+        <h1>Leaderboard</h1>
+        <p>Top performers across all quizzes</p>
+        <div class="card mt-16" id="leaderboardContent"></div>
+      </div>
+
+      <!-- BOOKMARKS -->
+      <div id="pageBookmarks" class="page">
+        <h1>Bookmarked Questions</h1>
+        <p>Questions you've marked for review</p>
+        <div id="bookmarksContent" class="mt-16"></div>
+      </div>
+
+      <!-- ADMIN DASHBOARD -->
+      <div id="pageAdminDash" class="page">
+        <h1>Admin Dashboard</h1>
+        <p>Platform overview and statistics</p>
+        <div class="grid-4 mt-16" id="adminStats"></div>
+        <div class="grid-2 mt-24">
+          <div class="card">
+            <h3>Quiz Performance</h3>
+            <div class="table-wrap" id="adminQuizStats"></div>
+          </div>
+          <div class="card">
+            <h3>Recent Activity</h3>
+            <div id="adminRecentActivity"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ADMIN: MANAGE QUIZZES -->
+      <div id="pageAdminQuizzes" class="page">
+        <div class="flex-between mb-16">
+          <div><h1>Manage Quizzes</h1><p>Create, edit and manage quizzes</p></div>
+          <div class="flex gap-8">
+            <button class="btn btn-ai" onclick="openGenModal()">✨ Generate Quiz with AI</button>
+            <button class="btn btn-outline" onclick="openQuizModal()">+ New Quiz (manual)</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="table-wrap" id="adminQuizTable"></div>
+        </div>
+      </div>
+
+      <!-- ADMIN: MANAGE QUESTIONS -->
+      <div id="pageAdminQuestions" class="page">
+        <div class="flex-between mb-16">
+          <div>
+            <button class="btn btn-outline btn-sm" onclick="showPage('pageAdminQuizzes')" style="margin-bottom:8px">← Back</button>
+            <h1>Manage Questions</h1>
+            <p id="adminQuestionsSubtitle">Questions for selected quiz</p>
+          </div>
+          <button class="btn btn-primary" onclick="openQuestionModal()">+ New Question</button>
+        </div>
+        <div class="card">
+          <div class="table-wrap" id="adminQuestionsTable"></div>
+        </div>
+      </div>
+
+      <!-- ADMIN: MANAGE USERS -->
+      <div id="pageAdminUsers" class="page">
+        <h1>Manage Users</h1>
+        <p>View and manage user accounts</p>
+        <div class="filter-bar mt-16">
+          <input type="text" id="userSearch" placeholder="🔍 Search users..." oninput="searchUsers()" />
+        </div>
+        <div class="card">
+          <div class="table-wrap" id="adminUsersTable"></div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- ====================================================
+     MODALS
+==================================================== -->
+
+<!-- Quiz Modal -->
+<div class="modal-overlay" id="quizModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="quizModalTitle">New Quiz</h2>
+      <button class="modal-close" onclick="closeModal('quizModal')">✕</button>
+    </div>
+    <div class="grid-2">
+      <div class="input-group" style="grid-column:span 2">
+        <label>Quiz Title</label>
+        <input type="text" id="qzTitle" placeholder="e.g. Java Fundamentals" />
+      </div>
+      <div class="input-group" style="grid-column:span 2">
+        <label>Description</label>
+        <textarea id="qzDesc" placeholder="Brief description of what this quiz covers..."></textarea>
+      </div>
+      <div class="input-group">
+        <label>Category</label>
+        <select id="qzCategory"></select>
+      </div>
+      <div class="input-group">
+        <label>Difficulty</label>
+        <select id="qzDifficulty">
+          <option>Easy</option><option selected>Medium</option><option>Hard</option>
+        </select>
+      </div>
+      <div class="input-group">
+        <label>Duration (minutes)</label>
+        <input type="number" id="qzDuration" value="15" min="1" max="180" />
+      </div>
+      <div class="input-group">
+        <label>Passing % </label>
+        <input type="number" id="qzPassPct" value="50" min="1" max="100" />
+      </div>
+      <div class="input-group">
+        <label>Max Questions (blank = all)</label>
+        <input type="number" id="qzMaxQ" placeholder="Leave blank for all" />
+      </div>
+      <div class="input-group" style="display:flex; align-items:center; gap:8px; padding-top:24px">
+        <input type="checkbox" id="qzRandQ" style="width:auto" />
+        <label style="margin:0">Randomize Questions</label>
+      </div>
+      <div class="input-group" style="display:flex; align-items:center; gap:8px">
+        <input type="checkbox" id="qzNeg" style="width:auto" />
+        <label style="margin:0">Negative Marking</label>
+      </div>
+      <div class="input-group">
+        <label>Negative Mark Value</label>
+        <input type="number" id="qzNegVal" value="0.25" step="0.25" min="0" />
+      </div>
+    </div>
+
+    <!-- MANUAL QUIZ QUESTIONS -->
+    <div class="manual-q-section mt-16">
+      <div class="flex-between" style="align-items:center; margin-bottom:12px">
+        <div>
+          <h3 style="margin:0">Questions</h3>
+          <div class="gen-hint" style="margin-top:4px">Add your questions manually. Each question needs four options and one correct answer.</div>
+        </div>
+        <button type="button" class="btn btn-outline btn-sm" onclick="addManualQuestion()">+ Add Question</button>
+      </div>
+      <div id="manualQuestionsList"></div>
+      <div id="manualQuestionsEmpty" style="text-align:center; padding:18px; border:1px dashed var(--border); border-radius:10px; color:var(--muted)">
+        No questions added yet. Click <strong>+ Add Question</strong> to start.
+      </div>
+    </div>
+
+    <div class="flex gap-8 mt-16">
+      <button class="btn btn-primary" onclick="saveQuiz()">Save Quiz</button>
+      <button class="btn btn-outline" onclick="closeModal('quizModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- AI Quiz Generator Modal -->
+<div class="modal-overlay" id="genModal">
+  <div class="modal" style="max-width:780px">
+    <div class="modal-header">
+      <h2>✨ Generate Quiz with AI</h2>
+      <button class="modal-close" onclick="closeModal('genModal')">✕</button>
+    </div>
+
+    <!-- STEP 1: INPUT -->
+    <div id="genStep1">
+      <div class="gen-tabs">
+        <button class="gen-tab active" id="genTabTopic" onclick="setGenMode('topic')">💡 From a Topic</button>
+        <button class="gen-tab" id="genTabFile" onclick="setGenMode('file')">📄 From a File</button>
+      </div>
+
+      <div id="genTopicBox">
+        <div class="input-group">
+          <label>Topic</label>
+          <input type="text" id="genTopic" placeholder="e.g. Java OOP concepts, SQL joins, Indian Constitution" />
+          <div class="gen-hint">The AI writes the questions from its own knowledge. Be specific for better quizzes.</div>
+        </div>
+      </div>
+
+      <div id="genFileBox" style="display:none">
+        <div class="dropzone" id="genDrop">
+          <div class="dz-icon">📎</div>
+          <div class="dz-name" id="genFileName">Click to choose a file or drag it here</div>
+          <div class="dz-hint">PDF, DOCX, PPTX, TXT, MD, CSV, JSON, PNG, JPG, WEBP · max 10 MB</div>
+        </div>
+        <input type="file" id="genFile" style="display:none"
+               accept=".pdf,.docx,.pptx,.txt,.md,.markdown,.csv,.json,.png,.jpg,.jpeg,.webp,.gif" />
+        <div class="input-group">
+          <label>Focus on (optional)</label>
+          <input type="text" id="genFocus" placeholder="e.g. Chapter 3 only, or 'only the definitions'" />
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="input-group">
+          <label>Number of questions</label>
+          <input type="number" id="genCount" value="10" min="3" max="30" />
+        </div>
+        <div class="input-group">
+          <label>Difficulty</label>
+          <select id="genDifficulty"><option>Easy</option><option selected>Medium</option><option>Hard</option></select>
+        </div>
+        <div class="input-group" style="grid-column:span 2">
+          <label>AI model</label>
+          <select id="genModel"><option value="">Auto — tries every available model</option></select>
+          <div class="gen-hint" id="genModelHint">If a model fails or is out of quota, the next one is used automatically.</div>
+        </div>
+        <div class="input-group" style="grid-column:span 2">
+          <label>Extra instructions (optional)</label>
+          <textarea id="genInstr" style="min-height:60px" placeholder="e.g. Include a few code-output questions. Keep options short."></textarea>
+        </div>
+      </div>
+
+      <div class="flex gap-8">
+        <button class="btn btn-ai" onclick="generateQuiz()">✨ Generate Quiz</button>
+        <button class="btn btn-outline" onclick="closeModal('genModal')">Cancel</button>
+      </div>
+    </div>
+
+    <!-- LOADING -->
+    <div id="genLoading" class="gen-loading" style="display:none">
+      <div class="spinner" style="margin:0 auto 16px"></div>
+      <strong id="genLoadingTitle">Generating your quiz…</strong>
+      <p id="genLoadingText">Preparing your quiz. This usually takes 10–60 seconds.<br>If a model is busy, the next one is tried automatically.</p>
+    </div>
+
+    <!-- STEP 2: REVIEW -->
+    <div id="genStep2" style="display:none">
+      <div id="genWarning" class="gen-warning" style="display:none"></div>
+      <div id="genModelInfo" class="gen-hint" style="margin-bottom:12px"></div>
+      <div class="grid-2">
+        <div class="input-group" style="grid-column:span 2">
+          <label>Quiz Title</label>
+          <input type="text" id="genTitle" maxlength="200" />
+        </div>
+        <div class="input-group" style="grid-column:span 2">
+          <label>Description</label>
+          <textarea id="genDesc" style="min-height:60px"></textarea>
+        </div>
+        <div class="input-group">
+          <label>Category</label>
+          <input id="genCategoryInput" list="genCategoryOptions" placeholder="Select or type a category" autocomplete="off" />
+          <datalist id="genCategoryOptions"></datalist>
+          <input type="hidden" id="genCategoryId" />
+          <small id="genCategoryHint" style="display:block;margin-top:5px;color:var(--muted)">Select an existing category or type a new one.</small>
+        </div>
+        <div class="input-group">
+          <label>Difficulty</label>
+          <select id="genQDifficulty"><option>Easy</option><option>Medium</option><option>Hard</option></select>
+        </div>
+        <div class="input-group">
+          <label>Duration (minutes)</label>
+          <input type="number" id="genDuration" min="1" max="180" />
+        </div>
+        <div class="input-group">
+          <label>Passing %</label>
+          <input type="number" id="genPassPct" value="50" min="1" max="100" />
+        </div>
+        <div class="input-group" style="display:flex; align-items:center; gap:8px">
+          <input type="checkbox" id="genRandQ" style="width:auto" />
+          <label style="margin:0">Randomize question order</label>
+        </div>
+        <div class="input-group" style="display:flex; align-items:center; gap:8px">
+          <input type="checkbox" id="genPublish" style="width:auto" checked />
+          <label style="margin:0">Publish now (visible to users)</label>
+        </div>
+      </div>
+
+      <h3 style="margin:8px 0 4px">Questions (<span id="genQCount">0</span>)</h3>
+      <div class="gen-hint">Review and edit anything. Select the radio button next to the correct answer. Remove questions you don't want.</div>
+      <div id="genQuestions"></div>
+
+      <div class="flex gap-8 mt-16">
+        <button class="btn btn-primary" id="genSaveBtn" onclick="saveGeneratedQuiz()">💾 Save Quiz</button>
+        <button class="btn btn-outline" onclick="genBack()">← Back / Regenerate</button>
+        <button class="btn btn-outline" onclick="closeModal('genModal')">Discard</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Question Modal -->
+<div class="modal-overlay" id="questionModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="questionModalTitle">New Question</h2>
+      <button class="modal-close" onclick="closeModal('questionModal')">✕</button>
+    </div>
+    <div class="input-group">
+      <label>Question Text</label>
+      <textarea id="qqText" placeholder="Enter the question..." rows="3"></textarea>
+    </div>
+    <div class="input-group">
+      <label>Option A</label>
+      <input type="text" id="qqA" placeholder="Option A" />
+    </div>
+    <div class="input-group">
+      <label>Option B</label>
+      <input type="text" id="qqB" placeholder="Option B" />
+    </div>
+    <div class="input-group">
+      <label>Option C</label>
+      <input type="text" id="qqC" placeholder="Option C" />
+    </div>
+    <div class="input-group">
+      <label>Option D</label>
+      <input type="text" id="qqD" placeholder="Option D" />
+    </div>
+    <div class="grid-2">
+      <div class="input-group">
+        <label>Correct Answer</label>
+        <select id="qqCorrect">
+          <option value="A">A</option>
+          <option value="B">B</option>
+          <option value="C">C</option>
+          <option value="D">D</option>
+        </select>
+      </div>
+      <div class="input-group">
+        <label>Marks</label>
+        <input type="number" id="qqMarks" value="1" min="1" max="10" />
+      </div>
+      <div class="input-group">
+        <label>Difficulty</label>
+        <select id="qqDiff">
+          <option>Easy</option><option selected>Medium</option><option>Hard</option>
+        </select>
+      </div>
+    </div>
+    <div class="input-group">
+      <label>Explanation (optional)</label>
+      <textarea id="qqExp" placeholder="Explain why this answer is correct..."></textarea>
+    </div>
+    <div class="flex gap-8 mt-16">
+      <button class="btn btn-primary" onclick="saveQuestion()">Save Question</button>
+      <button class="btn btn-outline" onclick="closeModal('questionModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm Modal -->
+<div class="modal-overlay" id="confirmModal">
+  <div class="modal" style="max-width:380px; text-align:center">
+    <div style="font-size:2rem; margin-bottom:12px">⚠️</div>
+    <h2 id="confirmTitle">Are you sure?</h2>
+    <p id="confirmMsg">This action cannot be undone.</p>
+    <div class="flex gap-8 mt-16" style="justify-content:center">
+      <button class="btn btn-danger" id="confirmOk">Confirm</button>
+      <button class="btn btn-outline" onclick="closeModal('confirmModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+// ============================================================
+// CONFIG
+// ============================================================
+const API = '/api';
+let authToken = localStorage.getItem('qm_token');
+let currentUser = JSON.parse(localStorage.getItem('qm_user') || 'null');
+let quizTimer = null;
+let currentAttempt = null;
+let currentQuestions = [];
+let currentAnswers = {};
+let timerSeconds = 0;
+let editingQuizId = null;
+let editingQuestionId = null;
+let currentAdminQuizId = null;
+let categories = [];
+let quizPage = 1;
+
+// ============================================================
+// API HELPERS
+// ============================================================
+async function api(path, method = 'GET', body = null) {
+  const opts = {
+    method,
+    cache: 'no-store',
+    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' }
+  };
+  if (authToken) opts.headers['Authorization'] = `Bearer ${authToken}`;
+  if (body) opts.body = JSON.stringify(body);
+
+  // Prevent browser/server caching from returning a 304 with an empty body.
+  const requestUrl = method === 'GET'
+    ? API + path + (path.includes('?') ? '&' : '?') + `_t=${Date.now()}`
+    : API + path;
+  let res = await fetch(requestUrl, opts);
+
+  // A 304 has no response body, so retry once with a cache-busting URL.
+  if (res.status === 304) {
+    const retryUrl = API + path + (path.includes('?') ? '&' : '?') + `_refresh=${Date.now()}`;
+    res = await fetch(retryUrl, { ...opts, cache: 'reload' });
+  }
+
+  if (res.status === 401) { logout(); return null; }
+  if (res.status === 204) return {};
+  
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    console.error('API Error:', res.status, data);
+    let message = data.message || data.title || 'An error occurred';
+    if (data.errors) {
+      const validationErrors = Object.entries(data.errors)
+        .flatMap(([field, errors]) => (Array.isArray(errors) ? errors : [errors]).map(error => `${field}: ${error}`));
+      if (validationErrors.length) message = validationErrors.join('\n');
+    }
+    toast(message, 'error');
+    return null;
+  }
+  return data;
+}
+
+// ============================================================
+// AUTH
+// ============================================================
+function showLogin() {
+  document.getElementById('loginForm').style.display = 'block';
+  document.getElementById('registerForm').style.display = 'none';
+}
+
+function showRegister() {
+  document.getElementById('loginForm').style.display = 'none';
+  document.getElementById('registerForm').style.display = 'block';
+}
+
+async function login() {
+  const email = document.getElementById('loginEmail').value;
+  const password = document.getElementById('loginPassword').value;
+  if (!email || !password) { toast('Please fill in all fields', 'error'); return; }
+  
+  const res = await api('/auth/login', 'POST', { email, password });
+  if (res) { setAuth(res); initApp(); }
+}
+
+async function register() {
+  const name = document.getElementById('regName').value;
+  const email = document.getElementById('regEmail').value;
+  const password = document.getElementById('regPassword').value;
+  if (!name || !email || !password) { toast('Please fill in all fields', 'error'); return; }
+  
+  const res = await api('/auth/register', 'POST', { name, email, password });
+  if (res) { setAuth(res); initApp(); }
+}
+
+function setAuth(data) {
+  authToken = data.token;
+  currentUser = data;
+  localStorage.setItem('qm_token', authToken);
+  localStorage.setItem('qm_user', JSON.stringify(data));
+}
+
+function logout() {
+  authToken = null; currentUser = null;
+  localStorage.removeItem('qm_token');
+  localStorage.removeItem('qm_user');
+  document.getElementById('authScreen').style.display = 'block';
+  document.getElementById('mainApp').style.display = 'none';
+  if (quizTimer) clearInterval(quizTimer);
+}
+
+// ============================================================
+// APP INIT
+// ============================================================
+async function initApp() {
+  if (!authToken || !currentUser) return;
+  
+  document.getElementById('authScreen').style.display = 'none';
+  document.getElementById('mainApp').style.display = 'block';
+  
+  // Set sidebar user info
+  document.getElementById('sidebarName').textContent = currentUser.name;
+  document.getElementById('sidebarRole').textContent = currentUser.role;
+  document.getElementById('sidebarAvatar').textContent = currentUser.name.charAt(0).toUpperCase();
+  
+  // Build nav
+  buildNav();
+  
+  // Load categories
+  const catData = await api('/Category');
+  if (catData) {
+    categories = normalizeCategories(catData);
+    buildCategoryFilter(categories);
+  }
+  
+  // Show dashboard
+  if (currentUser.role === 'Admin') {
+    showPage('pageAdminDash');
+  } else {
+    showPage('pageDashboard');
+  }
+}
+
+function buildNav() {
+  const isAdmin = currentUser.role === 'Admin';
+  const nav = document.getElementById('sideNav');
+  
+  const userNavItems = [
+    { id: 'pageDashboard', icon: '📊', label: 'Dashboard' },
+    { id: 'pageQuizzes', icon: '📚', label: 'Browse Quizzes' },
+    { id: 'pageHistory', icon: '📋', label: 'My Attempts' },
+    { id: 'pageLeaderboard', icon: '🏆', label: 'Leaderboard' },
+    { id: 'pageBookmarks', icon: '⭐', label: 'Bookmarks' },
+  ];
+  
+  const adminNavItems = [
+    { id: 'pageAdminDash', icon: '📊', label: 'Dashboard' },
+    { id: 'pageAdminQuizzes', icon: '📚', label: 'Manage Quizzes' },
+    { id: 'pageAdminUsers', icon: '👥', label: 'Manage Users' },
+    { id: 'pageLeaderboard', icon: '🏆', label: 'Leaderboard' },
+    { id: 'pageQuizzes', icon: '🔍', label: 'Browse Quizzes' },
+  ];
+  
+  const items = isAdmin ? adminNavItems : userNavItems;
+  
+  nav.innerHTML = items.map(item => `
+    <button class="nav-item" id="nav_${item.id}" onclick="showPage('${item.id}')">
+      <span class="icon">${item.icon}</span> ${item.label}
+    </button>
+  `).join('');
+}
+
+function showPage(pageId) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(pageId).classList.add('active');
+  const navBtn = document.getElementById('nav_' + pageId);
+  if (navBtn) navBtn.classList.add('active');
+  
+  // Lazy load page content
+  switch(pageId) {
+    case 'pageDashboard': loadUserDashboard(); break;
+    case 'pageQuizzes': loadQuizzes(); break;
+    case 'pageHistory': loadHistory(); break;
+    case 'pageLeaderboard': loadLeaderboard(); break;
+    case 'pageBookmarks': loadBookmarks(); break;
+    case 'pageAdminDash': loadAdminDashboard(); break;
+    case 'pageAdminQuizzes': loadAdminQuizzes(); break;
+    case 'pageAdminUsers': loadAdminUsers(); break;
+  }
+}
+
+// ============================================================
+// USER DASHBOARD
+// ============================================================
+async function loadUserDashboard() {
+  const data = await api('/attempt/dashboard');
+  if (!data) return;
+  
+  document.getElementById('dashGreeting').textContent = `Welcome back, ${data.welcomeName}!`;
+  
+  document.getElementById('dashStats').innerHTML = [
+    { val: data.availableQuizzes, label: 'Quizzes Available' },
+    { val: data.quizzesAttempted, label: 'Quizzes Attempted' },
+    { val: data.averageScore + '%', label: 'Average Score' },
+    { val: data.highestScore + '%', label: 'Highest Score' },
+  ].map(s => `
+    <div class="stat-card">
+      <div class="stat-value">${s.val}</div>
+      <div class="stat-label">${s.label}</div>
+    </div>
+  `).join('');
+  
+  // Recent attempts
+  const recents = data.recentAttempts || [];
+  document.getElementById('dashRecent').innerHTML = recents.length
+    ? recents.map(a => `
+      <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--border)">
+        <div>
+          <div style="font-weight:600; font-size:.88rem">${esc(a.quizTitle)}</div>
+          <div style="font-size:.75rem; color:var(--muted)">${esc(a.categoryName)} · ${formatDate(a.attemptedAt)}</div>
+        </div>
+        <div style="text-align:right">
+          <div class="badge ${a.status === 'Passed' ? 'badge-green' : 'badge-red'}">${a.status}</div>
+          <div style="font-size:.85rem; font-weight:700; margin-top:4px; font-family:monospace">${a.score}/${a.totalMarks}</div>
+        </div>
+      </div>
+    `).join('')
+    : '<p style="text-align:center; padding:20px">No attempts yet. Take a quiz!</p>';
+  
+  // Performance chart
+  const perf = data.performanceChart || [];
+  document.getElementById('dashChart').innerHTML = perf.length
+    ? `<div class="chart-bar-wrap">${
+        perf.map(p => `
+          <div class="chart-bar-col">
+            <div style="font-size:.7rem; color:var(--muted); margin-bottom:4px">${Math.round(p.percentage)}%</div>
+            <div class="chart-bar" style="height:${Math.max(4, p.percentage)}%"></div>
+            <div class="chart-bar-label">${esc(p.quizTitle.split(' ')[0])}</div>
+          </div>
+        `).join('')
+      }</div>`
+    : '<p style="text-align:center; padding:20px; color:var(--muted)">Attempt quizzes to see your performance trend</p>';
+}
+
+// ============================================================
+// QUIZ LIST
+// ============================================================
+let allQuizzes = [];
+let filteredQuizzes = [];
+
+async function loadQuizzes() {
+  document.getElementById('quizGrid').innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  const data = await api('/quiz?PageSize=100');
+  if (!data) return;
+  allQuizzes = data.items || [];
+  filteredQuizzes = [...allQuizzes];
+  renderQuizGrid();
+}
+
+function buildCategoryFilter(cats) {
+  const sel = document.getElementById('filterCategory');
+  sel.innerHTML = '<option value="">All Categories</option>';
+  const list = Array.isArray(cats) ? cats : (cats?.items || cats?.categories || []);
+  list.forEach(cat => {
+    sel.innerHTML += `<option value="${cat.id}">${esc(cat.name)}</option>`;
+    (cat.subCategories || []).forEach(sub => {
+      sel.innerHTML += `<option value="${sub.id}">&nbsp;&nbsp;↳ ${esc(sub.name)}</option>`;
+    });
+  });
+}
+
+function filterQuizzes() {
+  const search = document.getElementById('filterSearch').value.toLowerCase();
+  const category = document.getElementById('filterCategory').value;
+  const difficulty = document.getElementById('filterDifficulty').value;
+  
+  filteredQuizzes = allQuizzes.filter(q => {
+    const matchSearch = !search || q.title.toLowerCase().includes(search) || (q.description || '').toLowerCase().includes(search);
+    const matchCat = !category || q.categoryId == category;
+    const matchDiff = !difficulty || q.difficulty === difficulty;
+    return matchSearch && matchCat && matchDiff;
+  });
+  
+  renderQuizGrid();
+}
+
+function renderQuizGrid() {
+  const grid = document.getElementById('quizGrid');
+  if (!filteredQuizzes.length) {
+    grid.innerHTML = '<div style="grid-column:span 3; text-align:center; padding:40px; color:var(--muted)">No quizzes found. Try different filters.</div>';
+    return;
+  }
+  
+  grid.innerHTML = filteredQuizzes.map(q => `
+    <div class="quiz-card" onclick="showQuizDetail(${q.id})">
+      <div class="flex-between">
+        <span class="badge ${diffBadge(q.difficulty)}">${q.difficulty}</span>
+        <span style="font-size:.75rem; color:var(--muted)">${esc(q.categoryName)}</span>
+      </div>
+      <div class="quiz-title mt-16">${esc(q.title)}</div>
+      <div style="font-size:.82rem; color:var(--muted); margin-top:4px; min-height:36px">${esc((q.description || '').substring(0, 80))}${(q.description || '').length > 80 ? '...' : ''}</div>
+      <div class="quiz-meta">
+        <span class="quiz-meta-item">⏱ ${q.durationMinutes} min</span>
+        <span class="quiz-meta-item">❓ ${q.questionCount} questions</span>
+        <span class="quiz-meta-item">⭐ ${q.totalMarks} marks</span>
+        <span class="quiz-meta-item">🎯 ${q.passingPercentage}% to pass</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function showQuizDetail(quizId) {
+  const quiz = await api(`/quiz/${quizId}`);
+  if (!quiz) return;
+  
+  document.getElementById('quizDetailContent').innerHTML = `
+    <div class="card">
+      <div class="flex-between mb-16">
+        <div>
+          <span class="badge ${diffBadge(quiz.difficulty)}">${quiz.difficulty}</span>
+          <span style="font-size:.85rem; color:var(--muted); margin-left:8px">${esc(quiz.categoryName)}</span>
+        </div>
+        ${quiz.isActive ? '' : '<span class="badge badge-red">Inactive</span>'}
+      </div>
+      <h1>${esc(quiz.title)}</h1>
+      <p>${esc(quiz.description || '')}</p>
+      
+      <div class="grid-4 mt-24">
+        <div class="stat-card"><div class="stat-value">${quiz.durationMinutes}</div><div class="stat-label">Minutes</div></div>
+        <div class="stat-card"><div class="stat-value">${quiz.questionCount}</div><div class="stat-label">Questions</div></div>
+        <div class="stat-card"><div class="stat-value">${quiz.totalMarks}</div><div class="stat-label">Total Marks</div></div>
+        <div class="stat-card"><div class="stat-value">${quiz.passingPercentage}%</div><div class="stat-label">Pass Mark</div></div>
+      </div>
+      
+      <div style="margin-top:20px; padding:16px; background:var(--bg); border-radius:8px">
+        ${quiz.negativeMarking ? `<p style="color:var(--red); font-size:.88rem; margin-bottom:4px">⚠️ Negative marking: -${quiz.negativeMarkValue} per wrong answer</p>` : ''}
+        ${quiz.randomizeQuestions ? '<p style="font-size:.88rem; margin-bottom:4px">🔀 Questions are randomized</p>' : ''}
+        <p style="font-size:.88rem; margin-bottom:0">Created by ${esc(quiz.createdByName)}</p>
+      </div>
+      
+      <div style="margin-top:24px; display:flex; gap:12px; flex-wrap:wrap">
+        ${quiz.isActive ? `<button class="btn btn-primary" onclick="startQuiz(${quiz.id})">🚀 Start Quiz</button>` : '<span class="badge badge-red" style="font-size:.9rem; padding:10px 20px">Quiz Inactive</span>'}
+        <button class="btn btn-outline" onclick="showPage('pageQuizzes')">← Back</button>
+      </div>
+    </div>
+  `;
+  
+  showPage('pageQuizDetail');
+}
+
+// ============================================================
+// QUIZ TAKING
+// ============================================================
+async function startQuiz(quizId) {
+  const data = await api(`/attempt/start/${quizId}`, 'POST');
+  if (!data) return;
+  
+  currentAttempt = data;
+  currentQuestions = data.questions;
+  currentAnswers = {};
+  timerSeconds = data.durationSeconds;
+  
+  renderQuizTake(0);
+  showPage('pageQuizTake');
+  startTimer();
+}
+
+function renderQuizTake(questionIndex) {
+  const q = currentQuestions[questionIndex];
+  const total = currentQuestions.length;
+  const answered = Object.keys(currentAnswers).length;
+  
+  const page = document.getElementById('pageQuizTake');
+  page.innerHTML = `
+    <div class="quiz-header">
+      <div>
+        <div style="font-weight:700">${esc(currentAttempt.quizTitle)}</div>
+        <div style="font-size:.8rem; color:var(--muted)">Q${questionIndex + 1} of ${total}</div>
+      </div>
+      <div class="timer" id="timerDisplay">--:--</div>
+      <button class="btn btn-danger btn-sm" onclick="confirmSubmit()">Submit Quiz</button>
+    </div>
+    
+    <div style="max-width:800px; margin:0 auto; padding:24px">
+      <!-- Question navigation -->
+      <div class="question-nav">
+        ${currentQuestions.map((_, i) => `
+          <button class="q-nav-btn ${currentAnswers[currentQuestions[i].id] ? 'answered' : ''} ${i === questionIndex ? 'current' : ''}"
+            onclick="renderQuizTake(${i})">${i + 1}</button>
+        `).join('')}
+      </div>
+      
+      <!-- Progress -->
+      <div style="margin-bottom:20px">
+        <div class="flex-between text-sm text-muted mb-16">
+          <span>${answered} of ${total} answered</span>
+          <span>${q.marks} mark${q.marks > 1 ? 's' : ''} · ${q.difficulty}</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" style="width:${answered/total*100}%"></div>
+        </div>
+      </div>
+      
+      <!-- Question -->
+      <div class="card">
+        <div style="margin-bottom:20px">
+          <div style="font-size:.75rem; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; margin-bottom:8px">Question ${questionIndex + 1}</div>
+          <div style="font-size:1.05rem; font-weight:600; line-height:1.5">${esc(q.questionText)}</div>
+        </div>
+        
+        ${['A', 'B', 'C', 'D'].map(opt => `
+          <button class="option-btn ${currentAnswers[q.id] === opt ? 'selected' : ''}"
+            onclick="selectAnswer(${q.id}, '${opt}', ${questionIndex})">
+            <span class="option-label">${opt}</span>
+            <span>${esc(q['option' + opt])}</span>
+          </button>
+        `).join('')}
+        
+        <div style="display:flex; justify-content:space-between; margin-top:16px">
+          <button class="btn btn-outline btn-sm" onclick="renderQuizTake(${Math.max(0, questionIndex - 1)})" ${questionIndex === 0 ? 'disabled' : ''}>← Previous</button>
+          <button class="btn ${q.isBookmarked || false ? 'btn-outline' : 'btn-outline'} btn-sm" onclick="toggleBookmark(${q.id}, this)">
+            ⭐ ${q.isBookmarked ? 'Bookmarked' : 'Bookmark'}
+          </button>
+          <button class="btn btn-outline btn-sm" onclick="renderQuizTake(${Math.min(total - 1, questionIndex + 1)})" ${questionIndex === total - 1 ? 'disabled' : ''}>Next →</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function selectAnswer(questionId, option, questionIndex) {
+  if (currentAnswers[questionId] === option) {
+    delete currentAnswers[questionId]; // deselect
+  } else {
+    currentAnswers[questionId] = option;
+  }
+  renderQuizTake(questionIndex);
+}
+
+async function toggleBookmark(questionId, btn) {
+  const method = btn.textContent.includes('Bookmarked') ? 'DELETE' : 'POST';
+  await api(`/question/${questionId}/bookmark`, method);
+  btn.textContent = btn.textContent.includes('Bookmarked') ? '⭐ Bookmark' : '⭐ Bookmarked';
+}
+
+function startTimer() {
+  if (quizTimer) clearInterval(quizTimer);
+  updateTimerDisplay();
+  quizTimer = setInterval(() => {
+    timerSeconds--;
+    updateTimerDisplay();
+    if (timerSeconds <= 0) {
+      clearInterval(quizTimer);
+      toast('Time is up! Submitting automatically...', 'error');
+      submitQuiz();
+    }
+  }, 1000);
+}
+
+function updateTimerDisplay() {
+  const el = document.getElementById('timerDisplay');
+  if (!el) return;
+  const m = Math.floor(timerSeconds / 60);
+  const s = timerSeconds % 60;
+  el.textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  el.className = 'timer';
+  if (timerSeconds <= 60) el.classList.add('danger');
+  else if (timerSeconds <= 120) el.classList.add('warning');
+}
+
+function confirmSubmit() {
+  const answered = Object.keys(currentAnswers).length;
+  const total = currentQuestions.length;
+  const unanswered = total - answered;
+  
+  confirm2(
+    'Submit Quiz?',
+    `You've answered ${answered} of ${total} questions. ${unanswered ? `${unanswered} unanswered.` : ''} Are you sure?`,
+    submitQuiz
+  );
+}
+
+async function submitQuiz() {
+  if (quizTimer) clearInterval(quizTimer);
+  
+  const timeTaken = currentAttempt.durationSeconds - timerSeconds;
+  
+  const answers = currentQuestions.map(q => ({
+    questionId: q.id,
+    selectedOption: currentAnswers[q.id] || null
+  }));
+  
+  const result = await api('/attempt/submit', 'POST', {
+    attemptId: currentAttempt.attemptId,
+    timeTakenSeconds: timeTaken,
+    answers
+  });
+  
+  if (result) showResult(result);
+}
+
+// ============================================================
+// RESULT PAGE
+// ============================================================
+function showResult(result) {
+  const passed = result.status === 'Passed';
+  const mins = Math.floor(result.timeTakenSeconds / 60);
+  const secs = result.timeTakenSeconds % 60;
+  
+  document.getElementById('resultContent').innerHTML = `
+    <button class="btn btn-outline btn-sm mb-16" onclick="showPage('pageQuizzes')">← Browse Quizzes</button>
+    
+    <div class="card result-header">
+      <div class="result-score-ring ${passed ? 'passed' : 'failed'}">
+        <div class="result-score-value">${result.percentage}%</div>
+        <div class="result-score-label">Score</div>
+      </div>
+      <h1>${esc(result.quizTitle)}</h1>
+      <span class="badge ${passed ? 'badge-green' : 'badge-red'}" style="font-size:1rem; padding:6px 20px">
+        ${passed ? '✅ PASSED' : '❌ FAILED'}
+      </span>
+      
+      <div class="grid-4 mt-24" style="text-align:left">
+        <div class="stat-card"><div class="stat-value">${result.score}/${result.totalMarks}</div><div class="stat-label">Score</div></div>
+        <div class="stat-card"><div class="stat-value" style="color:var(--green)">${result.correctAnswers}</div><div class="stat-label">Correct</div></div>
+        <div class="stat-card"><div class="stat-value" style="color:var(--red)">${result.wrongAnswers}</div><div class="stat-label">Wrong</div></div>
+        <div class="stat-card"><div class="stat-value" style="color:var(--amber)">${result.unansweredQuestions}</div><div class="stat-label">Unanswered</div></div>
+      </div>
+      
+      <div style="margin-top:16px; color:var(--muted); font-size:.88rem">
+        Time taken: ${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')} · Pass mark: ${result.passingPercentage}%
+      </div>
+      
+      <div style="margin-top:24px; display:flex; gap:12px; justify-content:center">
+        <button class="btn btn-primary" onclick="toggleReview()">📖 Review Answers</button>
+        <button class="btn btn-outline" onclick="showPage('pageHistory')">📋 View History</button>
+      </div>
+    </div>
+    
+    <div id="reviewSection" style="display:none; margin-top:16px">
+      <h2>Answer Review</h2>
+      ${(result.reviewAnswers || []).map((a, i) => `
+        <div class="review-item ${a.isCorrect ? 'correct' : a.selectedOption ? 'wrong' : 'unanswered'}">
+          <div class="flex-between">
+            <span style="font-weight:700; font-size:.85rem">Q${i + 1}</span>
+            <span class="badge ${a.isCorrect ? 'badge-green' : a.selectedOption ? 'badge-red' : 'badge-amber'}">
+              ${a.isCorrect ? '✓ Correct (+' + a.marksAwarded + ')' : a.selectedOption ? '✗ Wrong (' + a.marksAwarded + ')' : '— Unanswered'}
+            </span>
+          </div>
+          <p style="margin-top:8px; font-weight:600; color:var(--text)">${esc(a.questionText)}</p>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:8px">
+            ${['A','B','C','D'].map(opt => `
+              <div style="padding:8px 12px; border-radius:6px; font-size:.82rem; border:1.5px solid ${
+                opt === a.correctOption ? 'var(--green)' :
+                opt === a.selectedOption && !a.isCorrect ? 'var(--red)' : 'var(--border)'
+              }; background:${
+                opt === a.correctOption ? 'var(--green-lt)' :
+                opt === a.selectedOption && !a.isCorrect ? 'var(--red-lt)' : 'transparent'
+              }">
+                <strong>${opt}.</strong> ${esc(a['option' + opt])}
+                ${opt === a.correctOption ? ' ✓' : ''}
+                ${opt === a.selectedOption && !a.isCorrect ? ' ✗' : ''}
+              </div>
+            `).join('')}
+          </div>
+          ${a.explanation ? `<div style="margin-top:12px; padding:10px 14px; background:var(--bg); border-radius:6px; font-size:.82rem; color:var(--muted)">💡 ${esc(a.explanation)}</div>` : ''}
+        </div>
+      `).join('')}
+    </div>
+  `;
+  
+  showPage('pageResult');
+}
+
+function toggleReview() {
+  const r = document.getElementById('reviewSection');
+  r.style.display = r.style.display === 'none' ? 'block' : 'none';
+}
+
+// ============================================================
+// HISTORY
+// ============================================================
+async function loadHistory() {
+  const data = await api('/attempt/history');
+  if (!data) return;
+  
+  document.getElementById('historyTable').innerHTML = data.length
+    ? `<table>
+        <thead><tr>
+          <th>Quiz</th><th>Category</th><th>Score</th><th>%</th><th>Time</th><th>Status</th><th>Date</th><th></th>
+        </tr></thead>
+        <tbody>
+          ${data.map(a => `
+            <tr>
+              <td style="font-weight:600">${esc(a.quizTitle)}</td>
+              <td><span class="badge badge-blue">${esc(a.categoryName)}</span></td>
+              <td class="font-mono">${a.score}/${a.totalMarks}</td>
+              <td class="font-mono">${a.percentage}%</td>
+              <td>${formatTime(a.timeTakenSeconds)}</td>
+              <td><span class="badge ${a.status === 'Passed' ? 'badge-green' : 'badge-red'}">${a.status}</span></td>
+              <td style="font-size:.8rem; color:var(--muted)">${formatDate(a.attemptedAt)}</td>
+              <td><button class="btn btn-outline btn-sm" onclick="viewAttemptResult(${a.attemptId})">View</button></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>`
+    : '<p style="text-align:center; padding:40px; color:var(--muted)">No attempts yet. Take a quiz to get started!</p>';
+}
+
+async function viewAttemptResult(attemptId) {
+  const result = await api(`/attempt/${attemptId}/result`);
+  if (result) showResult(result);
+}
+
+// ============================================================
+// LEADERBOARD
+// ============================================================
+async function loadLeaderboard() {
+  const data = await api('/attempt/leaderboard');
+  if (!data) return;
+  
+  document.getElementById('leaderboardContent').innerHTML = `
+    <h3 style="margin-bottom:16px">🏆 Top Performers</h3>
+    ${data.map(entry => {
+      const medal = entry.rank === 1 ? 'gold' : entry.rank === 2 ? 'silver' : entry.rank === 3 ? 'bronze' : '';
+      return `
+        <div class="lb-row ${entry.isCurrentUser ? 'current-user' : ''}">
+          <div class="lb-rank ${medal}">${entry.rank === 1 ? '🥇' : entry.rank === 2 ? '🥈' : entry.rank === 3 ? '🥉' : '#' + entry.rank}</div>
+          <div class="lb-name">${esc(entry.userName)} ${entry.isCurrentUser ? '<span style="font-size:.75rem;color:var(--muted)">(You)</span>' : ''}</div>
+          <div style="text-align:right">
+            <div class="lb-score">${entry.averageScore}%</div>
+            <div style="font-size:.72rem; color:var(--muted)">${entry.totalAttempts} attempts · ${entry.passedCount} passed</div>
+          </div>
+        </div>
+      `;
+    }).join('')}
+    ${data.length === 0 ? '<p style="text-align:center; padding:20px; color:var(--muted)">No entries yet</p>' : ''}
+  `;
+}
+
+// ============================================================
+// BOOKMARKS
+// ============================================================
+async function loadBookmarks() {
+  const data = await api('/question/bookmarks');
+  if (!data) return;
+  
+  document.getElementById('bookmarksContent').innerHTML = data.length
+    ? data.map((q, i) => `
+      <div class="card" style="margin-bottom:12px">
+        <div class="flex-between">
+          <span style="font-weight:700; font-size:.85rem; color:var(--muted)">Q${i + 1} · ${q.difficulty}</span>
+          <button class="btn btn-outline btn-sm" onclick="removeBookmark(${q.id}, this)">Remove ⭐</button>
+        </div>
+        <p style="font-weight:600; color:var(--text); margin-top:8px">${esc(q.questionText)}</p>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:12px">
+          ${['A','B','C','D'].map(opt => `
+            <div style="padding:8px 12px; border-radius:6px; font-size:.82rem; border:1.5px solid ${opt === q.correctOption ? 'var(--green)' : 'var(--border)'}; background:${opt === q.correctOption ? 'var(--green-lt)' : 'transparent'}">
+              <strong>${opt}.</strong> ${esc(q['option' + opt])} ${opt === q.correctOption ? '✓' : ''}
+            </div>
+          `).join('')}
+        </div>
+        ${q.explanation ? `<div style="margin-top:10px; padding:10px; background:var(--bg); border-radius:6px; font-size:.82rem; color:var(--muted)">💡 ${esc(q.explanation)}</div>` : ''}
+      </div>
+    `).join('')
+    : '<div class="card text-center" style="padding:40px"><p>No bookmarks yet. Bookmark questions while taking a quiz!</p></div>';
+}
+
+async function removeBookmark(questionId, btn) {
+  await api(`/question/${questionId}/bookmark`, 'DELETE');
+  btn.closest('.card').remove();
+}
+
+// ============================================================
+// ADMIN DASHBOARD
+// ============================================================
+async function loadAdminDashboard() {
+  const data = await api('/admin/dashboard');
+  if (!data) return;
+  
+  document.getElementById('adminStats').innerHTML = [
+    { val: data.totalUsers, label: 'Total Users', icon: '👥' },
+    { val: data.totalQuizzes, label: 'Total Quizzes', icon: '📚' },
+    { val: data.totalQuestions, label: 'Total Questions', icon: '❓' },
+    { val: data.totalAttempts, label: 'Total Attempts', icon: '📊' },
+  ].map(s => `
+    <div class="stat-card">
+      <div style="font-size:1.5rem; margin-bottom:8px">${s.icon}</div>
+      <div class="stat-value">${s.val}</div>
+      <div class="stat-label">${s.label}</div>
+    </div>
+  `).join('');
+  
+  // Quiz stats table
+  document.getElementById('adminQuizStats').innerHTML = `
+    <table>
+      <thead><tr><th>Quiz</th><th>Attempts</th><th>Avg Score</th><th>Pass Rate</th></tr></thead>
+      <tbody>
+        ${(data.quizStats || []).map(s => `
+          <tr>
+            <td style="font-weight:600">${esc(s.quizTitle)}</td>
+            <td>${s.totalAttempts}</td>
+            <td class="font-mono">${Math.round(s.averageScore)}%</td>
+            <td><span class="badge ${s.passRate >= 50 ? 'badge-green' : 'badge-red'}">${Math.round(s.passRate)}%</span></td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+  
+  // Recent activity
+  document.getElementById('adminRecentActivity').innerHTML = (data.recentAttempts || []).map(a => `
+    <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--border); font-size:.85rem">
+      <div>
+        <strong>${esc(a.userName)}</strong> took <em>${esc(a.quizTitle)}</em>
+        <div style="font-size:.75rem; color:var(--muted)">${formatDate(a.attemptedAt)}</div>
+      </div>
+      <span class="badge ${a.status === 'Passed' ? 'badge-green' : 'badge-red'}">${Math.round(a.percentage)}%</span>
+    </div>
+  `).join('');
+}
+
+// ============================================================
+// ADMIN: MANAGE QUIZZES
+// ============================================================
+let adminQuizzes = [];
+
+async function loadAdminQuizzes() {
+  const data = await api('/quiz?PageSize=100');
+  if (!data) return;
+  adminQuizzes = data.items || [];
+  renderAdminQuizTable();
+}
+
+function renderAdminQuizTable() {
+  document.getElementById('adminQuizTable').innerHTML = `
+    <table>
+      <thead><tr>
+        <th>Title</th><th>Category</th><th>Difficulty</th><th>Questions</th><th>Status</th><th>Actions</th>
+      </tr></thead>
+      <tbody>
+        ${adminQuizzes.map(q => `
+          <tr>
+            <td style="font-weight:600">${esc(q.title)}</td>
+            <td>${esc(q.categoryName)}</td>
+            <td><span class="badge ${diffBadge(q.difficulty)}">${q.difficulty}</span></td>
+            <td>${q.questionCount}</td>
+            <td><span class="badge ${q.isActive ? 'badge-green' : 'badge-red'}">${q.isActive ? 'Active' : 'Inactive'}</span></td>
+            <td>
+              <div style="display:flex; gap:6px">
+                <button class="btn btn-outline btn-sm" onclick="manageQuestions(${q.id}, this.dataset.title)" data-title="${esc(q.title)}">Questions</button>
+                <button class="btn btn-outline btn-sm" onclick="editQuiz(${q.id})">Edit</button>
+                <button class="btn btn-outline btn-sm" onclick="toggleQuizStatus(${q.id})">${q.isActive ? 'Deactivate' : 'Activate'}</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteQuiz(${q.id})">Delete</button>
+              </div>
+            </td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+let manualQuestions = [];
+
+function newManualQuestion() {
+  return {
+    id: null,
+    questionText: '',
+    optionA: '',
+    optionB: '',
+    optionC: '',
+    optionD: '',
+    correctOption: 'A',
+    marks: 1,
+    difficulty: 'Medium',
+    explanation: ''
+  };
+}
+
+function addManualQuestion() {
+  manualQuestions.push(newManualQuestion());
+  renderManualQuestions();
+  setTimeout(() => {
+    const cards = document.querySelectorAll('.manual-q-card');
+    const last = cards[cards.length - 1];
+    if (last) last.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, 0);
+}
+
+function removeManualQuestion(index) {
+  manualQuestions.splice(index, 1);
+  renderManualQuestions();
+}
+
+function updateManualQuestion(index, field, value) {
+  if (!manualQuestions[index]) return;
+  manualQuestions[index][field] = value;
+}
+
+function renderManualQuestions() {
+  const list = document.getElementById('manualQuestionsList');
+  const empty = document.getElementById('manualQuestionsEmpty');
+  if (!list || !empty) return;
+
+  empty.style.display = manualQuestions.length ? 'none' : 'block';
+  list.innerHTML = manualQuestions.map((q, i) => `
+    <div class="manual-q-card">
+      <div class="manual-q-head">
+        <strong>Question ${i + 1}</strong>
+        <button type="button" class="btn btn-danger btn-sm" onclick="removeManualQuestion(${i})">Remove</button>
+      </div>
+
+      <div class="input-group">
+        <label>Question Text</label>
+        <textarea rows="3" placeholder="Enter the question..."
+          oninput="updateManualQuestion(${i}, 'questionText', this.value)">${esc(q.questionText)}</textarea>
+      </div>
+
+      <div class="manual-q-options">
+        ${['A','B','C','D'].map(letter => `
+          <div class="manual-q-option">
+            <input type="radio" name="manualCorrect${i}" value="${letter}"
+              ${q.correctOption === letter ? 'checked' : ''}
+              onchange="updateManualQuestion(${i}, 'correctOption', this.value)" />
+            <input type="text" placeholder="Option ${letter}"
+              value="${esc(q['option' + letter])}"
+              oninput="updateManualQuestion(${i}, 'option${letter}', this.value)" />
+          </div>
+        `).join('')}
+      </div>
+
+      <div class="grid-2" style="margin-top:10px">
+        <div class="input-group">
+          <label>Marks</label>
+          <input type="number" min="1" max="10" value="${Number(q.marks) || 1}"
+            oninput="updateManualQuestion(${i}, 'marks', this.value)" />
+        </div>
+        <div class="input-group">
+          <label>Difficulty</label>
+          <select onchange="updateManualQuestion(${i}, 'difficulty', this.value)">
+            <option ${q.difficulty === 'Easy' ? 'selected' : ''}>Easy</option>
+            <option ${q.difficulty === 'Medium' ? 'selected' : ''}>Medium</option>
+            <option ${q.difficulty === 'Hard' ? 'selected' : ''}>Hard</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="input-group" style="margin-top:10px">
+        <label>Explanation (optional)</label>
+        <textarea rows="2" placeholder="Explain why the correct answer is correct..."
+          oninput="updateManualQuestion(${i}, 'explanation', this.value)">${esc(q.explanation)}</textarea>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function openQuizModal(quiz = null) {
+  editingQuizId = quiz ? quiz.id : null;
+  document.getElementById('quizModalTitle').textContent = quiz ? 'Edit Quiz' : 'New Quiz';
+
+  document.getElementById('qzTitle').value = quiz?.title || '';
+  document.getElementById('qzDesc').value = quiz?.description || '';
+  document.getElementById('qzDifficulty').value = quiz?.difficulty || 'Medium';
+  document.getElementById('qzDuration').value = quiz?.durationMinutes || 15;
+  document.getElementById('qzPassPct').value = quiz?.passingPercentage || 50;
+  document.getElementById('qzMaxQ').value = quiz?.maxQuestionsPerAttempt || '';
+  document.getElementById('qzRandQ').checked = quiz?.randomizeQuestions || false;
+  document.getElementById('qzNeg').checked = quiz?.negativeMarking || false;
+  document.getElementById('qzNegVal').value = quiz?.negativeMarkValue || 0.25;
+
+  // Populate categories from the already loaded list.
+  const sel = document.getElementById('qzCategory');
+  const list = normalizeCategories(categories);
+  sel.innerHTML = '';
+  if (!list.length) {
+    const catData = await api('/Category');
+    if (catData) categories = normalizeCategories(catData);
+  }
+  fillCategorySelect(sel, quiz?.categoryId || null);
+
+  // For a new quiz start empty. For an existing quiz, load its questions so they can be edited here.
+  manualQuestions = [];
+  if (quiz?.id) {
+    const existing = await api(`/question/quiz/${quiz.id}`);
+    if (Array.isArray(existing)) {
+      manualQuestions = existing.map(q => ({
+        id: q.id,
+        questionText: q.questionText || '',
+        optionA: q.optionA || '', optionB: q.optionB || '',
+        optionC: q.optionC || '', optionD: q.optionD || '',
+        correctOption: q.correctOption || 'A',
+        marks: q.marks || 1,
+        difficulty: q.difficulty || 'Medium',
+        explanation: q.explanation || ''
+      }));
+    }
+  }
+
+  renderManualQuestions();
+  openModal('quizModal');
+}
+
+async function editQuiz(id) {
+  const quiz = await api(`/quiz/${id}`);
+  if (quiz) await openQuizModal(quiz);
+}
+
+async function saveQuiz() {
+  const title = document.getElementById('qzTitle').value.trim();
+  const categoryId = parseInt(document.getElementById('qzCategory').value, 10);
+
+  if (!title) { toast('Quiz title is required.', 'error'); return; }
+  if (!Number.isFinite(categoryId) || categoryId <= 0) {
+    toast('Please select a valid category.', 'error');
+    return;
+  }
+
+  // Validate manually entered questions before creating/updating the quiz.
+  for (let i = 0; i < manualQuestions.length; i++) {
+    const q = manualQuestions[i];
+    const fields = [q.questionText, q.optionA, q.optionB, q.optionC, q.optionD];
+    if (!fields.every(v => String(v || '').trim())) {
+      toast(`Question ${i + 1}: fill the question and all four options.`, 'error');
+      return;
+    }
+    if (!['A','B','C','D'].includes(q.correctOption)) {
+      toast(`Question ${i + 1}: choose a correct answer.`, 'error');
+      return;
+    }
+  }
+
+  const questionPayload = manualQuestions.map(q => ({
+    questionText: String(q.questionText).trim(),
+    optionA: String(q.optionA).trim(),
+    optionB: String(q.optionB).trim(),
+    optionC: String(q.optionC).trim(),
+    optionD: String(q.optionD).trim(),
+    correctOption: ['A','B','C','D'].includes(q.correctOption) ? q.correctOption : 'A',
+    explanation: String(q.explanation || '').trim() || null,
+    difficulty: ['Easy','Medium','Hard'].includes(q.difficulty) ? q.difficulty : 'Medium',
+    marks: Number.isFinite(Number(q.marks)) && Number(q.marks) > 0 ? Number(q.marks) : 1
+  }));
+
+  const base = {
+    title,
+    description: document.getElementById('qzDesc').value.trim(),
+    categoryId,
+    difficulty: document.getElementById('qzDifficulty').value,
+    durationMinutes: parseInt(document.getElementById('qzDuration').value, 10) || 15,
+    passingPercentage: parseFloat(document.getElementById('qzPassPct').value) || 50,
+    negativeMarking: document.getElementById('qzNeg').checked,
+    negativeMarkValue: parseFloat(document.getElementById('qzNegVal').value) || 0.25,
+    randomizeQuestions: document.getElementById('qzRandQ').checked,
+    randomizeOptions: false,
+    maxQuestionsPerAttempt: document.getElementById('qzMaxQ').value ? parseInt(document.getElementById('qzMaxQ').value, 10) : null,
+    isActive: true
+  };
+
+  const saveBtn = document.querySelector('#quizModal button[onclick="saveQuiz()"]');
+  if (saveBtn) saveBtn.disabled = true;
+
+  try {
+    if (!editingQuizId) {
+      if (!questionPayload.length) {
+        toast('Add at least one question before saving the manual quiz.', 'error');
+        return;
+      }
+
+      // Use the same atomic endpoint as AI-generated quizzes: quiz + all questions in one transaction.
+      const res = await api('/quiz/with-questions', 'POST', { ...base, questions: questionPayload });
+      if (!res) return;
+
+      toast(`Manual quiz saved with ${questionPayload.length} question(s)!`, 'success');
+      closeModal('quizModal');
+      loadAdminQuizzes();
+      return;
+    }
+
+    // Existing quiz: update quiz settings first, then update/add its questions.
+    const updated = await api(`/quiz/${editingQuizId}`, 'PUT', base);
+    if (!updated) return;
+
+    for (const q of manualQuestions) {
+      const payload = { quizId: editingQuizId, ...questionPayload[manualQuestions.indexOf(q)] };
+      const result = q.id
+        ? await api(`/question/${q.id}`, 'PUT', payload)
+        : await api('/question', 'POST', payload);
+      if (!result) {
+        toast('Quiz settings were saved, but one or more questions could not be saved. Check the error above.', 'error');
+        return;
+      }
+    }
+
+    toast(`Quiz updated with ${manualQuestions.length} question(s)!`, 'success');
+    closeModal('quizModal');
+    loadAdminQuizzes();
+  } finally {
+    if (saveBtn) saveBtn.disabled = false;
+  }
+}
+
+async function toggleQuizStatus(id) {
+  await api(`/quiz/${id}/toggle`, 'PATCH');
+  loadAdminQuizzes();
+}
+
+async function deleteQuiz(id) {
+  confirm2('Delete Quiz?', 'This will delete the quiz and all its questions.', async () => {
+    await api(`/quiz/${id}`, 'DELETE');
+    toast('Quiz deleted', 'success');
+    loadAdminQuizzes();
+  });
+}
+
+
+// ============================================================
+// HTML ESCAPING (all quiz / user text is rendered through innerHTML)
+// ============================================================
+function esc(v) {
+  return String(v ?? '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+// ============================================================
+// ADMIN: AI QUIZ GENERATOR
+// ============================================================
+const GEN_EXTS = ['pdf','docx','pptx','txt','md','markdown','csv','json','png','jpg','jpeg','webp','gif'];
+const GEN_MAX_BYTES = 10 * 1024 * 1024;
+let genMode = 'topic';
+let genFile = null;
+let genDraft = null;
+let genRequestId = 0;
+
+function normalizeCategories(data) {
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.items)) return data.items;
+  if (Array.isArray(data?.categories)) return data.categories;
+  if (Array.isArray(data?.data)) return data.data;
+  if (Array.isArray(data?.result)) return data.result;
+  if (Array.isArray(data?.value)) return data.value;
+  return [];
+}
+
+function getFlatCategories() {
+  const list = normalizeCategories(categories);
+  const result = [];
+  list.forEach(cat => {
+    if (cat && cat.id != null) result.push({ id: Number(cat.id), name: String(cat.name || '') });
+    (cat?.subCategories || cat?.children || []).forEach(sub => {
+      if (sub && sub.id != null) result.push({ id: Number(sub.id), name: String(sub.name || '') });
+    });
+  });
+  return result.filter(x => Number.isFinite(x.id) && x.id > 0 && x.name.trim());
+}
+
+function populateCategoryPicker(selectedId = null, selectedName = '') {
+  const input = document.getElementById('genCategoryInput');
+  const datalist = document.getElementById('genCategoryOptions');
+  const hidden = document.getElementById('genCategoryId');
+  if (!input || !datalist || !hidden) return;
+
+  const flat = getFlatCategories();
+  datalist.innerHTML = flat.map(c => `<option value="${esc(c.name)}">`).join('');
+
+  if (selectedId != null && selectedId !== '') {
+    const found = flat.find(c => c.id === Number(selectedId));
+    hidden.value = found ? String(found.id) : String(selectedId);
+    input.value = selectedName || found?.name || '';
+  } else {
+    hidden.value = '';
+    if (selectedName) input.value = selectedName;
+  }
+
+  input.oninput = () => {
+    const typed = input.value.trim();
+    const found = flat.find(c => c.name.toLowerCase() === typed.toLowerCase());
+    hidden.value = found ? String(found.id) : '';
+    const hint = document.getElementById('genCategoryHint');
+    if (hint) {
+      hint.textContent = found
+        ? `Existing category selected: ${found.name}`
+        : typed
+          ? `New category "${typed}" will be created when you save.`
+          : 'Select an existing category or type a new one.';
+    }
+  };
+}
+
+async function ensureCategoriesLoaded() {
+  if (getFlatCategories().length) return true;
+  const catData = await api('/Category');
+  if (catData) categories = normalizeCategories(catData);
+  return getFlatCategories().length > 0;
+}
+
+async function resolveGeneratedCategory() {
+  const input = document.getElementById('genCategoryInput');
+  const hidden = document.getElementById('genCategoryId');
+  if (!input || !hidden) return null;
+
+  const name = input.value.trim();
+  if (!name) {
+    toast('Please select or type a category.', 'error');
+    input.focus();
+    return null;
+  }
+
+  await ensureCategoriesLoaded();
+  const existing = getFlatCategories().find(c => c.name.toLowerCase() === name.toLowerCase());
+  if (existing) {
+    hidden.value = String(existing.id);
+    return existing.id;
+  }
+
+  // New category: use the existing Admin POST /api/Category endpoint.
+  const created = await api('/Category', 'POST', {
+    name,
+    parentId: null,
+    description: `Category created while generating the quiz: ${name}`
+  });
+  if (!created || !created.id) return null;
+
+  categories = [
+    ...normalizeCategories(categories),
+    { id: created.id, name: created.name || name, description: created.description || '', isActive: true, subCategories: [] }
+  ];
+  hidden.value = String(created.id);
+  populateCategoryPicker(created.id, created.name || name);
+  toast(`New category "${created.name || name}" created.`, 'success');
+  return created.id;
+}
+
+function fillCategorySelect(sel, selectedId) {
+  // Kept for the existing manual quiz/filter UI.
+  sel.innerHTML = '';
+  const list = normalizeCategories(categories);
+
+  if (!list.length) {
+    sel.innerHTML = '<option value="">No categories available</option>';
+    sel.disabled = true;
+    return;
+  }
+
+  sel.disabled = false;
+  sel.innerHTML = '<option value="">-- Select Category --</option>';
+  list.forEach(cat => {
+    if (cat && cat.id != null) {
+      sel.innerHTML += `<option value="${esc(cat.id)}">${esc(cat.name || 'Unnamed Category')}</option>`;
+    }
+    (cat.subCategories || cat.children || []).forEach(sub => {
+      if (sub && sub.id != null) {
+        sel.innerHTML += `<option value="${esc(sub.id)}">&nbsp;↳ ${esc(sub.name || 'Unnamed Subcategory')}</option>`;
+      }
+    });
+  });
+  if (selectedId != null && selectedId !== '') sel.value = String(selectedId);
+}
+function genShow(step) {
+  document.getElementById('genStep1').style.display = step === 1 ? 'block' : 'none';
+  document.getElementById('genLoading').style.display = step === 0 ? 'block' : 'none';
+  document.getElementById('genStep2').style.display = step === 2 ? 'block' : 'none';
+
+  // Show a different loading message depending on whether the quiz
+  // is being generated from a topic or from an uploaded file.
+  if (step === 0) {
+    const loadingTitle = document.getElementById('genLoadingTitle');
+    const loadingText = document.getElementById('genLoadingText');
+
+    if (genMode === 'file') {
+      loadingTitle.textContent = 'Generating quiz from your file…';
+      loadingText.innerHTML =
+        'Reading your uploaded material and creating questions.' +
+        '<br>This usually takes 10–60 seconds.' +
+        '<br>If a model is busy, the next one is tried automatically.';
+    } else {
+      loadingTitle.textContent = 'Generating quiz from your topic…';
+      loadingText.innerHTML =
+        'Using AI knowledge to create questions about your topic.' +
+        '<br>This usually takes 10–60 seconds.' +
+        '<br>If a model is busy, the next one is tried automatically.';
+    }
+  }
+}
+
+function openGenModal() {
+  genRequestId++;               // ignore any in-flight response from a previous run
+  genDraft = null;
+  setGenFile(null);
+  ['genTopic', 'genFocus', 'genInstr'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('genCount').value = 10;
+  document.getElementById('genDifficulty').value = 'Medium';
+  setGenMode('topic');
+  genShow(1);
+  openModal('genModal');
+  loadGenModels();
+}
+
+// fills the model dropdown with the OpenRouter model configured for QuizApp
+async function loadGenModels() {
+  const sel = document.getElementById('genModel');
+  const hint = document.getElementById('genModelHint');
+  sel.innerHTML = '<option value="">Auto — tries every available model</option>';
+  const models = await api('/quiz/models');
+  if (!Array.isArray(models)) return;   // api() already showed the reason (e.g. key not configured)
+  models.forEach(m => {
+    sel.innerHTML += `<option value="${esc(m.name)}">${esc(m.name)}${m.coolingDown ? ' (recently busy)' : ''}</option>`;
+  });
+  hint.textContent = `${models.length} model(s) available for your OpenRouter configuration.`;
+}
+
+function setGenMode(mode) {
+  genMode = mode;
+  document.getElementById('genTabTopic').classList.toggle('active', mode === 'topic');
+  document.getElementById('genTabFile').classList.toggle('active', mode === 'file');
+  document.getElementById('genTopicBox').style.display = mode === 'topic' ? 'block' : 'none';
+  document.getElementById('genFileBox').style.display = mode === 'file' ? 'block' : 'none';
+}
+
+function setGenFile(file) {
+  genFile = file;
+  document.getElementById('genFileName').textContent = file
+    ? `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`
+    : 'Click to choose a file or drag it here';
+}
+
+function acceptGenFile(file) {
+  if (!file) return;
+  const ext = (file.name.split('.').pop() || '').toLowerCase();
+  if (!GEN_EXTS.includes(ext)) { toast('Unsupported file type. Use PDF, DOCX, PPTX, TXT, MD, CSV, JSON or an image.', 'error'); return; }
+  if (file.size > GEN_MAX_BYTES) { toast('File is too large (max 10 MB).', 'error'); return; }
+  setGenFile(file);
+}
+
+(function initGenDropzone() {
+  const drop = document.getElementById('genDrop');
+  const input = document.getElementById('genFile');
+  drop.addEventListener('click', () => input.click());
+  input.addEventListener('change', () => { acceptGenFile(input.files[0]); input.value = ''; });
+  ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('drag'); }));
+  ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('drag'); }));
+  drop.addEventListener('drop', e => acceptGenFile(e.dataTransfer.files[0]));
+})();
+
+// multipart upload (api() above always sends JSON)
+async function apiForm(path, formData) {
+  const headers = {};
+  if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+  let res;
+  try {
+    res = await fetch(API + path, { method: 'POST', headers, body: formData });
+  } catch (e) {
+    toast('Network error. Is the server running?', 'error');
+    return null;
+  }
+  if (res.status === 401) { logout(); return null; }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    console.error('API Form Error:', res.status, data);
+    let message = data.message || data.title || 'An error occurred';
+    if (data.errors) {
+      const validationErrors = Object.entries(data.errors)
+        .flatMap(([field, errors]) => (Array.isArray(errors) ? errors : [errors]).map(error => `${field}: ${error}`));
+      if (validationErrors.length) message = validationErrors.join('\n');
+    }
+    toast(message, 'error');
+    return null;
+  }
+  return data;
+}
+
+async function generateQuiz() {
+  const count = parseInt(document.getElementById('genCount').value);
+  if (!count || count < 3 || count > 30) { toast('Number of questions must be between 3 and 30.', 'error'); return; }
+
+  const fd = new FormData();
+  if (genMode === 'topic') {
+    const topic = document.getElementById('genTopic').value.trim();
+    if (!topic) { toast('Enter a topic first.', 'error'); return; }
+    fd.append('topic', topic);
+  } else {
+    if (!genFile) { toast('Choose a file first.', 'error'); return; }
+    fd.append('file', genFile);
+    const focus = document.getElementById('genFocus').value.trim();
+    if (focus) fd.append('topic', focus);
+  }
+  fd.append('numQuestions', count);
+  fd.append('difficulty', document.getElementById('genDifficulty').value);
+  const chosenModel = document.getElementById('genModel').value;
+  if (chosenModel) fd.append('preferredModel', chosenModel);
+  const instr = document.getElementById('genInstr').value.trim();
+  if (instr) fd.append('instructions', instr);
+
+  const myId = ++genRequestId;
+  genShow(0);
+  const draft = await apiForm('/quiz/generate', fd);
+  if (myId !== genRequestId) return;         // modal was reopened meanwhile
+  if (!draft) { genShow(1); return; }
+
+  genDraft = draft;
+  await renderGenReview();
+  genShow(2);
+}
+
+async function renderGenReview() {
+  const d = genDraft;
+  document.getElementById('genTitle').value = d.title || '';
+  document.getElementById('genDesc').value = d.description || '';
+
+  // Make sure categories are available even if the initial /api/Category request
+  // returned a wrapped response or completed before the generator was opened.
+  if (!normalizeCategories(categories).length) {
+    const catData = await api('/Category');
+    if (catData) categories = normalizeCategories(catData);
+  }
+  populateCategoryPicker();
+  document.getElementById('genQDifficulty').value = d.difficulty || 'Medium';
+  document.getElementById('genDuration').value = d.suggestedDurationMinutes || 15;
+  document.getElementById('genPassPct').value = 50;
+  document.getElementById('genRandQ').checked = false;
+  document.getElementById('genPublish').checked = true;
+
+  const mi = document.getElementById('genModelInfo');
+  mi.textContent = d.modelUsed
+    ? `Generated with ${d.modelUsed}` + (d.modelsTried > 1 ? ` (after ${d.modelsTried - 1} other model(s) failed)` : '')
+    : '';
+
+  const w = document.getElementById('genWarning');
+  w.style.display = d.warning ? 'block' : 'none';
+  w.textContent = d.warning || '';
+
+  renderGenQuestions();
+}
+
+function renderGenQuestions() {
+  const qs = genDraft.questions;
+  document.getElementById('genQCount').textContent = qs.length;
+  document.getElementById('genQuestions').innerHTML = qs.map((q, i) => `
+    <div class="gen-q">
+      <div class="flex-between">
+        <strong style="font-size:.85rem">Q${i + 1}</strong>
+        <button class="btn btn-danger btn-sm" onclick="removeGenQuestion(${i})">Remove</button>
+      </div>
+      <textarea oninput="genEdit(${i}, 'questionText', this.value)">${esc(q.questionText)}</textarea>
+      ${['A', 'B', 'C', 'D'].map(o => `
+        <div class="gen-opt ${q.correctOption === o ? 'correct' : ''}">
+          <input type="radio" name="genCorrect${i}" ${q.correctOption === o ? 'checked' : ''}
+                 onchange="genEdit(${i}, 'correctOption', '${o}'); renderGenQuestions()" title="Correct answer" />
+          <b>${o}</b>
+          <input type="text" value="${esc(q['option' + o])}" maxlength="500"
+                 oninput="genEdit(${i}, 'option${o}', this.value)" />
+        </div>`).join('')}
+      <input type="text" style="margin-top:6px" placeholder="Explanation (shown after the quiz)"
+             value="${esc(q.explanation || '')}" oninput="genEdit(${i}, 'explanation', this.value)" />
+    </div>`).join('') || '<p class="text-muted">No questions left.</p>';
+}
+
+function genEdit(i, field, value) { genDraft.questions[i][field] = value; }
+
+function removeGenQuestion(i) {
+  genDraft.questions.splice(i, 1);
+  renderGenQuestions();
+}
+
+function genBack() { genShow(1); }
+
+async function saveGeneratedQuiz() {
+  const title = document.getElementById('genTitle').value.trim();
+  if (!title) { toast('Quiz title is required.', 'error'); return; }
+  const qs = genDraft.questions;
+  if (!qs.length) { toast('Keep at least one question.', 'error'); return; }
+  for (let i = 0; i < qs.length; i++) {
+    const q = qs[i];
+    if (![q.questionText, q.optionA, q.optionB, q.optionC, q.optionD].every(t => (t || '').trim())) {
+      toast(`Question ${i + 1} has an empty field.`, 'error'); return;
+    }
+  }
+
+  const categoryId = await resolveGeneratedCategory();
+  if (!categoryId) return;
+
+  const body = {
+    title,
+    description: document.getElementById('genDesc').value.trim(),
+    categoryId,
+    difficulty: document.getElementById('genQDifficulty').value,
+    durationMinutes: parseInt(document.getElementById('genDuration').value) || 15,
+    passingPercentage: parseFloat(document.getElementById('genPassPct').value) || 50,
+    negativeMarking: false,
+    negativeMarkValue: 0.25,
+    randomizeQuestions: document.getElementById('genRandQ').checked,
+    randomizeOptions: false,
+    maxQuestionsPerAttempt: null,
+    isActive: document.getElementById('genPublish').checked,
+    questions: qs.map(q => ({
+      questionText: q.questionText.trim(),
+      optionA: q.optionA.trim(), optionB: q.optionB.trim(),
+      optionC: q.optionC.trim(), optionD: q.optionD.trim(),
+      correctOption: ['A','B','C','D'].includes(q.correctOption) ? q.correctOption : 'A',
+      explanation: (q.explanation || '').trim() || null,
+      difficulty: ['Easy','Medium','Hard'].includes(q.difficulty) ? q.difficulty : 'Medium',
+      marks: Number.isFinite(Number(q.marks)) && Number(q.marks) > 0 ? Number(q.marks) : 1
+    }))
+  };
+
+  const btn = document.getElementById('genSaveBtn');
+  btn.disabled = true;
+  const res = await api('/quiz/with-questions', 'POST', body);
+  btn.disabled = false;
+  if (res) {
+    toast(`Quiz saved with ${qs.length} questions!`, 'success');
+    closeModal('genModal');
+    loadAdminQuizzes();
+  }
+}
+
+// ============================================================
+// ADMIN: MANAGE QUESTIONS
+// ============================================================
+let adminQuestions = [];
+
+async function manageQuestions(quizId, quizTitle) {
+  currentAdminQuizId = quizId;
+  document.getElementById('adminQuestionsSubtitle').textContent = quizTitle;
+  
+  const data = await api(`/question/quiz/${quizId}`);
+  if (data) {
+    adminQuestions = data;
+    renderAdminQuestionsTable();
+  }
+  showPage('pageAdminQuestions');
+}
+
+function renderAdminQuestionsTable() {
+  document.getElementById('adminQuestionsTable').innerHTML = adminQuestions.length
+    ? `<table>
+        <thead><tr>
+          <th>#</th><th>Question</th><th>Correct</th><th>Marks</th><th>Difficulty</th><th>Status</th><th>Actions</th>
+        </tr></thead>
+        <tbody>
+          ${adminQuestions.map((q, i) => `
+            <tr>
+              <td>${i + 1}</td>
+              <td style="max-width:280px; font-size:.85rem">${esc(q.questionText.substring(0, 80))}${q.questionText.length > 80 ? '...' : ''}</td>
+              <td><span class="badge badge-green">${q.correctOption}</span></td>
+              <td>${q.marks}</td>
+              <td><span class="badge ${diffBadge(q.difficulty)}">${q.difficulty}</span></td>
+              <td><span class="badge ${q.isActive ? 'badge-green' : 'badge-red'}">${q.isActive ? 'Active' : 'Inactive'}</span></td>
+              <td>
+                <div style="display:flex; gap:6px">
+                  <button class="btn btn-outline btn-sm" onclick="editQuestion(${q.id})">Edit</button>
+                  <button class="btn btn-outline btn-sm" onclick="toggleQuestionStatus(${q.id})">${q.isActive ? 'Hide' : 'Show'}</button>
+                  <button class="btn btn-danger btn-sm" onclick="deleteQuestion(${q.id})">Del</button>
+                </div>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>`
+    : '<p style="text-align:center; padding:40px; color:var(--muted)">No questions yet. Add the first question!</p>';
+}
+
+function openQuestionModal(q = null) {
+  editingQuestionId = q ? q.id : null;
+  document.getElementById('questionModalTitle').textContent = q ? 'Edit Question' : 'New Question';
+  
+  document.getElementById('qqText').value = q?.questionText || '';
+  document.getElementById('qqA').value = q?.optionA || '';
+  document.getElementById('qqB').value = q?.optionB || '';
+  document.getElementById('qqC').value = q?.optionC || '';
+  document.getElementById('qqD').value = q?.optionD || '';
+  document.getElementById('qqCorrect').value = q?.correctOption || 'A';
+  document.getElementById('qqMarks').value = q?.marks || 1;
+  document.getElementById('qqDiff').value = q?.difficulty || 'Medium';
+  document.getElementById('qqExp').value = q?.explanation || '';
+  
+  openModal('questionModal');
+}
+
+async function editQuestion(id) {
+  const q = await api(`/question/${id}`);
+  if (q) openQuestionModal(q);
+}
+
+async function saveQuestion() {
+  const body = {
+    quizId: currentAdminQuizId,
+    questionText: document.getElementById('qqText').value,
+    optionA: document.getElementById('qqA').value,
+    optionB: document.getElementById('qqB').value,
+    optionC: document.getElementById('qqC').value,
+    optionD: document.getElementById('qqD').value,
+    correctOption: document.getElementById('qqCorrect').value,
+    marks: parseInt(document.getElementById('qqMarks').value),
+    difficulty: document.getElementById('qqDiff').value,
+    explanation: document.getElementById('qqExp').value
+  };
+  
+  const method = editingQuestionId ? 'PUT' : 'POST';
+  const url = editingQuestionId ? `/question/${editingQuestionId}` : '/question';
+  const res = await api(url, method, body);
+  if (res) {
+    toast(editingQuestionId ? 'Question updated!' : 'Question added!', 'success');
+    closeModal('questionModal');
+    manageQuestions(currentAdminQuizId, document.getElementById('adminQuestionsSubtitle').textContent);
+  }
+}
+
+async function toggleQuestionStatus(id) {
+  await api(`/question/${id}/toggle`, 'PATCH');
+  manageQuestions(currentAdminQuizId, document.getElementById('adminQuestionsSubtitle').textContent);
+}
+
+async function deleteQuestion(id) {
+  confirm2('Delete Question?', 'This question will be permanently deleted.', async () => {
+    await api(`/question/${id}`, 'DELETE');
+    toast('Question deleted', 'success');
+    manageQuestions(currentAdminQuizId, document.getElementById('adminQuestionsSubtitle').textContent);
+  });
+}
+
+// ============================================================
+// ADMIN: USERS
+// ============================================================
+async function loadAdminUsers(search = '') {
+  const url = `/users?search=${encodeURIComponent(search)}&pageSize=50`;
+  const data = await api(url);
+  if (!data) return;
+  
+  document.getElementById('adminUsersTable').innerHTML = `
+    <table>
+      <thead><tr>
+        <th>Name</th><th>Email</th><th>Attempts</th><th>Avg Score</th><th>Status</th><th>Joined</th><th>Actions</th>
+      </tr></thead>
+      <tbody>
+        ${(data.items || []).map(u => `
+          <tr>
+            <td style="font-weight:600">${esc(u.name)}</td>
+            <td style="font-size:.85rem; color:var(--muted)">${esc(u.email)}</td>
+            <td>${u.totalAttempts}</td>
+            <td class="font-mono">${Math.round(u.averageScore)}%</td>
+            <td><span class="badge ${u.isActive ? 'badge-green' : 'badge-red'}">${u.isActive ? 'Active' : 'Disabled'}</span></td>
+            <td style="font-size:.8rem; color:var(--muted)">${formatDate(u.createdAt)}</td>
+            <td>
+              <div style="display:flex; gap:6px">
+                <button class="btn btn-outline btn-sm" onclick="viewUserAttempts(${u.id}, this.dataset.name)" data-name="${esc(u.name)}">Attempts</button>
+                <button class="btn btn-outline btn-sm" onclick="toggleUserStatus(${u.id})">${u.isActive ? 'Disable' : 'Enable'}</button>
+              </div>
+            </td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+function searchUsers() {
+  const search = document.getElementById('userSearch').value;
+  loadAdminUsers(search);
+}
+
+async function toggleUserStatus(id) {
+  await api(`/users/${id}/toggle`, 'PATCH');
+  loadAdminUsers();
+}
+
+async function viewUserAttempts(userId, userName) {
+  const data = await api(`/users/${userId}/attempts`);
+  if (!data) return;
+  
+  // Show in modal-like card
+  document.getElementById('adminUsersTable').innerHTML = `
+    <button class="btn btn-outline btn-sm" style="margin-bottom:12px" onclick="loadAdminUsers()">← Back to Users</button>
+    <h3>${esc(userName)}'s Attempt History</h3>
+    <table style="margin-top:12px">
+      <thead><tr><th>Quiz</th><th>Score</th><th>%</th><th>Status</th><th>Date</th></tr></thead>
+      <tbody>
+        ${data.map(a => `
+          <tr>
+            <td>${esc(a.quizTitle)}</td>
+            <td class="font-mono">${a.score}/${a.totalMarks}</td>
+            <td class="font-mono">${a.percentage}%</td>
+            <td><span class="badge ${a.status === 'Passed' ? 'badge-green' : 'badge-red'}">${a.status}</span></td>
+            <td style="font-size:.8rem">${formatDate(a.attemptedAt)}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+    ${!data.length ? '<p style="text-align:center; padding:20px; color:var(--muted)">No attempts yet.</p>' : ''}
+  `;
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function confirm2(title, msg, onOk) {
+  document.getElementById('confirmTitle').textContent = title;
+  document.getElementById('confirmMsg').textContent = msg;
+  document.getElementById('confirmOk').onclick = () => { closeModal('confirmModal'); onOk(); };
+  openModal('confirmModal');
+}
+
+function toast(msg, type = '') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `show ${type}`;
+  setTimeout(() => el.classList.remove('show'), type === 'error' ? 6000 : 3000);
+}
+
+function diffBadge(d) {
+  return d === 'Easy' ? 'badge-green' : d === 'Hard' ? 'badge-red' : 'badge-amber';
+}
+
+function formatDate(str) {
+  if (!str) return '—';
+  return new Date(str).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function formatTime(secs) {
+  const m = Math.floor(secs / 60), s = secs % 60;
+  return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+function toggleTheme() {
+  const html = document.documentElement;
+  html.setAttribute('data-theme', html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+}
+
+// Close modals on overlay click
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay && overlay.id !== 'genModal') overlay.classList.remove('open');
+  });
+});
+
+// ============================================================
+// STARTUP
+// ============================================================
+if (authToken && currentUser) {
+  document.getElementById('authScreen').style.display = 'none';
+  initApp();
+}
+</script>
+</body>
+</html>
