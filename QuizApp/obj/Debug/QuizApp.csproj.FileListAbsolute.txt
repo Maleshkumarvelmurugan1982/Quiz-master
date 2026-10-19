@@ -1,0 +1,7 @@
+C:\Users\males\Downloads\QuizMaster_ASPX\QuizMaster_ASPX\QuizApp\bin\QuizApp.dll.config
+C:\Users\males\Downloads\QuizMaster_ASPX\QuizMaster_ASPX\QuizApp\bin\QuizApp.dll
+C:\Users\males\Downloads\QuizMaster_ASPX\QuizMaster_ASPX\QuizApp\bin\QuizApp.pdb
+C:\Users\males\Downloads\QuizMaster_ASPX\QuizMaster_ASPX\QuizApp\obj\Debug\QuizApp.csproj.AssemblyReference.cache
+C:\Users\males\Downloads\QuizMaster_ASPX\QuizMaster_ASPX\QuizApp\obj\Debug\QuizApp.csproj.CoreCompileInputs.cache
+C:\Users\males\Downloads\QuizMaster_ASPX\QuizMaster_ASPX\QuizApp\obj\Debug\QuizApp.dll
+C:\Users\males\Downloads\QuizMaster_ASPX\QuizMaster_ASPX\QuizApp\obj\Debug\QuizApp.pdb
