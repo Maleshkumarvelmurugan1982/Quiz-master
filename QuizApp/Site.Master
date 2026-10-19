@@ -1,0 +1,96 @@
+﻿<%@ Master Language="C#" AutoEventWireup="true" CodeBehind="Site.Master.cs" Inherits="QuizApp.SiteMaster" %>
+
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head runat="server">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>QuizMaster</title>
+    <script>
+        try { if (localStorage.getItem('qm_theme') === 'dark') document.documentElement.setAttribute('data-theme', 'dark'); } catch (e) { }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;600&amp;display=swap" rel="stylesheet" />
+    <link href="~/Content/site.css" rel="stylesheet" />
+    <asp:ContentPlaceHolder ID="HeadContent" runat="server" />
+</head>
+<body>
+    <form id="form1" runat="server">
+
+        <!-- Mobile top bar -->
+        <div class="topbar">
+            <button type="button" class="btn-icon" onclick="return qmToggleNav();" title="Menu">☰</button>
+            <span class="topbar-logo">🧠 QuizMaster</span>
+            <button type="button" class="btn-icon" onclick="return qmToggleTheme();" title="Toggle theme">🌙</button>
+            <asp:LinkButton ID="lnkSignOutTop" runat="server" CssClass="btn-icon" ToolTip="Sign out"
+                OnClick="SignOut_Click" CausesValidation="false">👋</asp:LinkButton>
+        </div>
+
+        <div class="app">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <div class="logo"><span class="logo-icon">🧠</span> QuizMaster</div>
+
+                <nav class="nav">
+                    <asp:Repeater ID="rptNav" runat="server">
+                        <ItemTemplate>
+                            <a class="nav-item<%# (bool)Eval("Active") ? " active" : "" %>" href="<%# Fmt.H(ResolveUrl((string)Eval("Url"))) %>">
+                                <span class="icon"><%# Fmt.H(Eval("Icon")) %></span> <%# Fmt.H(Eval("Label")) %>
+                            </a>
+                        </ItemTemplate>
+                    </asp:Repeater>
+                </nav>
+
+                <div style="padding: 12px 20px; border-top: 1px solid var(--border);">
+                    <button type="button" class="btn btn-outline btn-sm" style="width: 100%; margin-bottom: 8px; justify-content: center"
+                        onclick="return qmToggleTheme();">🌙 Toggle Theme</button>
+                    <asp:LinkButton ID="lnkSignOut" runat="server" CssClass="btn btn-outline btn-sm"
+                        Style="width: 100%; justify-content: center; color: var(--red); border-color: var(--red)"
+                        OnClick="SignOut_Click" CausesValidation="false">Sign Out</asp:LinkButton>
+                </div>
+
+                <div class="sidebar-footer">
+                    <div class="avatar"><asp:Literal ID="litAvatar" runat="server" Mode="Encode" /></div>
+                    <div class="user-info">
+                        <div class="user-name"><asp:Literal ID="litUserName" runat="server" Mode="Encode" /></div>
+                        <div class="user-role"><asp:Literal ID="litUserRole" runat="server" Mode="Encode" /></div>
+                    </div>
+                </div>
+            </aside>
+            <div class="nav-backdrop"></div>
+
+            <!-- Page content -->
+            <main class="main">
+                <asp:ContentPlaceHolder ID="MainContent" runat="server" />
+            </main>
+        </div>
+
+        <!-- Confirm dialog (used by qmConfirm in site.js) -->
+        <div class="modal-overlay" id="confirmModal">
+            <div class="modal" style="max-width: 380px; text-align: center">
+                <div style="font-size: 2rem; margin-bottom: 12px">⚠️</div>
+                <h2 id="confirmTitle">Are you sure?</h2>
+                <p id="confirmMsg">This action cannot be undone.</p>
+                <div class="flex gap-8 mt-16" style="justify-content: center">
+                    <button type="button" class="btn btn-danger" id="confirmOk">Confirm</button>
+                    <button type="button" class="btn btn-outline" onclick="qmCloseModal('confirmModal')">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading overlay (AI generation) -->
+        <div class="loading-overlay" id="loadingOverlay">
+            <div class="loading-box">
+                <div class="spinner"></div>
+                <strong id="loadingTitle">Working…</strong>
+                <p id="loadingText" style="margin-top: 8px">Please wait.</p>
+            </div>
+        </div>
+
+        <div id="toast"></div>
+    </form>
+
+    <script src="<%: ResolveUrl("~/Scripts/site.js") %>"></script>
+    <asp:ContentPlaceHolder ID="ScriptContent" runat="server" />
+</body>
+</html>
